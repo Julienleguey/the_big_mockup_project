@@ -1,0 +1,4 @@
+description of the tables
+
+user: one user has one email address and one password
+projects: one project belongs to one and only one user (project has a user and a name)

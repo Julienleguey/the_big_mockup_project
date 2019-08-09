@@ -1,0 +1,17 @@
+{
+  "development": {
+    "dialect": "sqlite",
+    "storage": "mockup.db",
+    "operatorsAliases": false
+  },
+  "test": {
+    "dialect": "sqlite",
+    "storage": "mockup.db",
+    "operatorsAliases": false
+  },
+  "production": {
+    "dialect": "sqlite",
+    "storage": "mockup.db",
+    "operatorsAliases": false
+  }
+}

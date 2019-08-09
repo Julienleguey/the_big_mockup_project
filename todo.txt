@@ -1,0 +1,146 @@
+serveur :
+1. créer un serveur avec cors truc
+2. servir les images
+3. définir les besoins de la bdd
+4. ajouter une bdd sqlite
+
+client :
+1. créer un projet avec create react app
+
+
+exemple d'url pour les mockups :
+http://localhost:5000/mockups/iphone_8plus.png
+
+
+/*******************
+Besoins de la bdd
+*******************/
+
+auth :
+une table utilisateur : id, adresse email, prénom, nom, pays, job, mot de passe
+une table projet : id, userId, name, os
+une table canvas : id, projectId, device, template (top / middle / bottom), background choice (color, image), background-image-url, screenshot-url,
+  title text, title font-family, title size, title color, title weight, subtitle text, subtitle font-family, subtitle size, subtitle color, subtitle weight,
+
+
+infos utiles pour un projet :
+os (iOS / Android )
+device size (une table device nous dit si c'est phone / tablet, la taille de l'écran en pouce et la taille du canvas (pas besoin d'une table pour ça, un objet suffit))
+
+une table os : id, 2 os
+une table type de device : une entrée par taille de device et par os, à chaque type de device est associé un os de la table os
+une table device : une entrée par device, à chaque device est associé un type de device
+
+
+/******************
+onboarding project
+******************/
+
+onboarding-project :
+choix de l'os : table project
+choix du device : table canvas
+choix de la position du device sur le canvas : table canvas
+l'utilisateur tape un nom pour son projet : table project
+l'utilisateur valide et deux requêtes sont envoyées :
+  - une requête POST pour créer le projet
+  - une requête POST pour créer le premier canvas (les mettre dans une promesse)
+
+
+Il faut un onboarding-project pour les utilisateurs non loggés avec un chemin différent pour créer un projet sans envoyer de requête.
+On garde les infos dans le state, on les passes en props.
+Si l'utilisateur veut dl ou save, il doit signin, choisir un abonnement et payer (attention à bien garder les props)
+
+/******************
+onboarding user
+******************/
+
+onboarding-user :
+ - sign up (or sign in)
+ - si sign up, choisir un abonnement
+ - si sign up, payer
+ - redirection vers la page principale ou vers la page du projet, avec sauvegarde du projet
+
+
+/*********
+en cours
+*********/
+- Je fais le OnboardingProject
+- renommer Projects en ProjectList
+- renommer Project en ProjectCard
+- créer le composant Project pour accueillir le projet
+- Ensuite, il faudra afficher la page du projet avec tous les canvas et pouvoir modifier les canvas
+
+
+
+là tout de suite :
+- créer un composant Text pour harmoniser le texte
+- créer un composant Field pour les form's fields
+- créer un composant Button pour harmoniser les boutons
+- créer une landing page avec un bouton pour accéder à la collection de mockups
+- créer un header
+- créer un formulaire pour créer un compte (sign up)
+- créer un formulaire pour sign in
+- créer un bouton pour sign out
+- c'est le header qui est mis à jour sur le sign in, pas la landing page (évolution possible)
+- créer une page success si l'utilisateur s'est logué, avec son nom et son prénom
+- créer une page "collection de mockup/projet" avec les projets en cours (liste des projets et possibilités d'en créer un nouveau)
+- créer une page "définir son mockup" avec un slider pour choisir les options une à une (os, phone/tablet, size, device)
+- créer une page "projet" avec tous les mockups du projet, par défaut un seul mockup créé (ou 3 ?), et un bouton pour ajouter un mockup
+  mettre à jour chaque mockup individuellement
+
+
+/********************************
+options pour le display du device
+*********************************/
+
+un full device, pas de texte  ==> check
+un full device en bas, texte au dessus, le device se repropotionne en fonction de l'espace disponible
+un full device en haut, texte au-dessous, le device se repropotionne en fonction de l'espace disponible
+un device en bas, coupé, texte au-dessus ==> check
+un device en haut, coupé, texte en-dessous ==> check
+un full screenshot, rien d'autre (aucun intérêt) ==> check
+un screenshot en bas, pas de device, texte au-dessus ==> check
+un screenshot en haut, pas de device, texte en-dessous ==> check
+un full device penché sur la gauche, pas de texte
+un full device penché sur la gauche, device en bas, texte en haut
+un full device penché sur la gauche, device en haut, texte en bas
+un full device penché sur la droite, pas de texte
+un full device penché sur la droite, device en bas, texte en haut
+un full device penché sur la droite, device en haut, texte en bas
+un device penché sur la gauche, coupé, pas de texte
+un device penché sur la gauche, coupé, device en bas, texte en haut
+un device penché sur la gauche, coupé, device en haut, texte en bas
+un device penché sur la droite, coupé, pas de texte
+un device penché sur la droite, coupé, device en bas, texte en haut
+un device penché sur la droite, coupé, device en haut, texte en bas
+un device penché sur la droite, sur deux écrans
+
+
+/********************
+options pour le texte
+*********************/
+
+tailles :
+petit
+moyen
+grand
+
+weight:
+light
+normal
+bold
+
+/***********
+à améliorer
+***********/
+
+routes : users.js, les méthodes update et delete sont pas fofolles (update : pas propre).
+système de cryptage du password et localStorage || cookies à fiabiliser
+persist users credentials in react :
+https://stackoverflow.com/questions/39097440/on-react-router-how-to-stay-logged-in-state-even-refresh-the-page
+JSON web token à explorer : https://jwt.io/ (en plus ça fonctionne avec Auth0 que j'utilise déjà (ah non, j'utilise basic-auth, mais je pourrais changer))
+
+Pour appeler context inside component lifecycle : https://reactjs.org/docs/context.html#contextprovider
+
+Excellente doc dont je me suis inspiré pour faire fonctionner les relations entre tables (même si ce que j'ai fait n'est pas idéal):
+https://lorenstewart.me/2016/09/12/sequelize-table-associations-joins/
