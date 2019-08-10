@@ -20,6 +20,16 @@ export default {
     widthEnd: 995,
     heightEnd: 2163
   },
+  iphone_x:
+  {
+    canva: "iphone65",
+    width: 1300,
+    height: 2595,
+    widthStart: 88,
+    heightStart: 79,
+    widthEnd: 1124,
+    heightEnd: 2435
+  },
   /* ipad portrait */
   ipad_2_portrait: {
     canva: "ipad_portrait",

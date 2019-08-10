@@ -124,6 +124,7 @@ class Project extends Component {
               <option value="">Select a device</option>
               <option value="iphone_8_plus">iPhone 8 plus</option>
               <option value="iphone_xr">iPhone XR</option>
+              <option value="iphone_x">iPhone X Black</option>
               <option value="ipad_2_portrait">iPad 2 portrait</option>
               <option value="ipad_3_portrait">iPad 3 portrait</option>
               <option value="pixel_3a_XL">Pixel 3a XL</option>
