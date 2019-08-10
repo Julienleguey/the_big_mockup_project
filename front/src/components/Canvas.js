@@ -565,6 +565,14 @@ class Canvas extends Component {
       this.writeText(ctx, subtitleStart, this.state.subtitleColor, this.state.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
     }
 
+    // rotating if needed
+    if (Templates[this.state.template].rotate) {
+      ctx.translate((deviceWidth - sideMargin * 8)/2, 0);
+      ctx.rotate((Math.PI / 180) * 25);
+      ctx.translate(0, -200);
+    }
+
+
     // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is draw)
     // otherwise it's played here
     if (this.state.screenshotPresent == true) {
