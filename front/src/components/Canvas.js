@@ -89,6 +89,7 @@ const colorsList = ["#000000", "#c0c0c0", "#808080", "#ffffff", "#800000", "#ff0
 const fontsList = ["Arial", "Arial Black", "Courier", "Garamond", "Georgia", "Helvetica", "Impact", "Tahoma", "Times", "Trebuchet MS", "Verdana"];
 const rLMarginRate = 0.05;
 const tBMarginRate = 0.05;
+const resizeNoDevice = 1.8;
 
 
 let device = "";
@@ -107,12 +108,13 @@ let deviceWidthStart = 0;
 let deviceHeightStart = 0;
 let deviceWidthEnd = 0;
 let deviceHeightEnd = 0;
-let resize = 0;
+let resizeWithDevice = 0;
 
 let screenshotWidthStart = 0;
 let screenshotHeightStart = 0;
 let screenshotWidthEnd = 0;
 let screenshotHeightEnd = 0;
+let screenshotHeight = 0;
 
 let textStart = 0;
 let titleStart = 0;
@@ -281,23 +283,21 @@ class Canvas extends Component {
       deviceHeight = tempHeight2;
     }
 
-    resize = deviceWidth / DeviceSize[this.props.device].width;
-    console.log(`resize: ${resize}`);
+    resizeWithDevice = deviceWidth / DeviceSize[this.props.device].width;
   }
 
   redoScreenshotForCanvas = () => {
     if (Templates[this.state.template].device) {
-      screenshotWidthStart = (DeviceSize[this.props.device].widthStart * resize) + sideMargin;
-      screenshotWidthEnd = DeviceSize[this.props.device].widthEnd * resize;
-      screenshotHeightStart = DeviceSize[this.props.device].heightStart * resize;
-      screenshotHeightEnd = DeviceSize[this.props.device].heightEnd * resize;
+      screenshotWidthStart = (DeviceSize[this.props.device].widthStart * resizeWithDevice) + sideMargin;
+      screenshotWidthEnd = DeviceSize[this.props.device].widthEnd * resizeWithDevice;
+      screenshotHeightStart = DeviceSize[this.props.device].heightStart * resizeWithDevice;
+      screenshotHeightEnd = DeviceSize[this.props.device].heightEnd * resizeWithDevice;
     } else {
-      console.log(deviceWidthStart, deviceHeightStart);
-      // il faut le faire commencer et finir là où le device commencerait et finirait (mais pas complètement, parce qu'ils ne sont pas au même format)
-      screenshotWidthStart = rLMargin;
+      screenshotWidthStart = rLMargin * resizeNoDevice;
       screenshotHeightStart = 0;
-      screenshotWidthEnd = maxWidth;
-      screenshotHeightEnd = ( maxWidth * DeviceSize[this.props.device].heightEnd ) / DeviceSize[this.props.device].widthEnd;
+      screenshotWidthEnd = canvaWidth - screenshotWidthStart * 2;
+      screenshotHeightEnd = ( (canvaWidth - screenshotWidthStart * 2) * DeviceSize[this.props.device].heightEnd ) / DeviceSize[this.props.device].widthEnd;
+      screenshotHeight = screenshotHeightEnd;
     }
   }
 
@@ -352,9 +352,6 @@ class Canvas extends Component {
         }
       }
     }
-    console.log(`spacing to device: ${spacingToDevice}`);
-    console.log(`spacing to text: ${spacingToText}`);
-
   }
 
   getTextStart = () => {
@@ -385,6 +382,7 @@ class Canvas extends Component {
   }
 
   getDeviceStart = () => {
+    // y'a moyen de refactoriser cette fonction : c'est le gros bazar et il y a des trucs qui se répètent
     sideMargin = Math.max(canvaWidth * rLMarginRate, (canvaWidth - deviceWidth) / 2);
     deviceWidthStart = sideMargin;
     // need to reboot the deviceHeightStart, do not delete, it's useful (seriously)
@@ -392,13 +390,26 @@ class Canvas extends Component {
 
     if (Templates[this.state.template].caption === "none" || spaceFilledByTitle + spaceFilledBySubtitle === 0) {
       deviceHeightStart += (canvaHeight - deviceHeight) / 2;
-      screenshotHeightStart += (canvaHeight - deviceHeight) / 2;
+
+      if (Templates[this.state.template].device) {
+        screenshotHeightStart += (canvaHeight - deviceHeight) / 2;
+      } else {
+        screenshotHeightStart += (canvaHeight - screenshotHeight) / 2;
+      }
+
     } else if (Templates[this.state.template].caption === "above") {
       if (spaceFilledByTitle + spaceFilledBySubtitle > 0) {
         const spaceLeft = canvaHeight - tBMargin - spaceFilledByTitle - spaceFilledBySubtitle;
-        const marginLeft = (spaceLeft - deviceHeight)/2;
+        let marginLeft = 0;
+
+        if (Templates[this.state.template].device) {
+          marginLeft = (spaceLeft - deviceHeight)/2;
+        } else {
+          marginLeft = (spaceLeft - screenshotHeight)/2;
+        }
 
         let spaceFilledByText = 0;
+
         if (marginLeft > spacingToDevice) {
           spaceFilledByText = tBMargin + spaceFilledByTitle + spaceFilledBySubtitle + marginLeft;
         } else {
@@ -410,19 +421,35 @@ class Canvas extends Component {
     } else if (Templates[this.state.template].caption === "below") {
       if (spaceFilledByTitle + spaceFilledBySubtitle > 0) {
         const spaceLeft = canvaHeight - tBMargin - spaceFilledByTitle - spaceFilledBySubtitle;
-        const marginLeft = (spaceLeft - deviceHeight)/2;
 
         let deviceToBottom = 0;
-        if (marginLeft > spacingToText) {
-          deviceToBottom = (canvaHeight - deviceHeight) - marginLeft - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+        let marginLeft = 0;
+
+        if (Templates[this.state.template].device) {
+          marginLeft = (spaceLeft - deviceHeight)/2;
         } else {
-          deviceToBottom = (canvaHeight - deviceHeight) - spacingToText - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+          marginLeft = (spaceLeft - screenshotHeight)/2;
         }
+
+        if (Templates[this.state.template].device) {
+          if (marginLeft > spacingToText) {
+            deviceToBottom = (canvaHeight - deviceHeight) - marginLeft - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+          } else {
+            deviceToBottom = (canvaHeight - deviceHeight) - spacingToText - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+          }
+        } else {
+          console.log(marginLeft, spacingToText)
+          if (marginLeft > spacingToText) {
+            deviceToBottom = (canvaHeight - screenshotHeight) - marginLeft - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+          } else {
+            deviceToBottom = (canvaHeight - screenshotHeight) - spacingToText - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin;
+          }
+        }
+
         deviceHeightStart += deviceToBottom;
         screenshotHeightStart += deviceToBottom;
       }
     }
-
   }
 
   writeText = (ctx, startHeight, fontColor, font, fontSize, content, lineToLine) => {
