@@ -1,6 +1,4 @@
 export default {
-  startTop: 165,
-  startBottom: 150,
   small: {
     titleSize: 70,
     subtitleSize: 70,
