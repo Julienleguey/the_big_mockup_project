@@ -90,11 +90,12 @@ const fontsList = ["Arial", "Arial Black", "Courier", "Garamond", "Georgia", "He
 const rLMarginRate = 0.05;
 const tBMarginRate = 0.05;
 const resizeNoDevice = 0.8;
+let rotRadians = 0;
 
 let device = "";
 let number = "";
 let caption = "";
-let rotate = "";
+let isRotate = "";
 let isDevice = false;
 
 let canvaWidth = 0;
@@ -143,6 +144,9 @@ let spaceFilledNone = 0;
 let spaceFilledAbove = 0;
 let spaceFilledBelow = 0;
 
+let diffHeight = 0;
+let diffWidth = 0;
+
 let translateX = 0;
 let translateY = 0;
 
@@ -177,11 +181,13 @@ lifecyle events
     // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
     this.setState({
       device: this.props.device,
-      template: "1",
+      template: "6",
       number: this.props.index + 1,
       backgroundColor: "#0f63c2",
       titleSize: "medium",
       subtitleSize: "medium",
+      titleFont: "Arial",
+      subtitleFont: "Arial",
       titleColor: "#ffffff",
       subtitleColor: "#ffffff",
     });
@@ -257,8 +263,9 @@ methods to calculate meta-datas
     device = this.props.device;
     number = this.props.index + 1;
     caption = Templates[this.state.template].caption;
-    rotate = Templates[this.state.template].rotate;
     isDevice = Templates[this.state.template].device;
+    isRotate = Templates[this.state.template].rotate;
+    rotRadians = (Math.PI / 180) * Templates[this.state.template].rotation;
   }
 
   // 2. calculer la taille du nouveau canva
@@ -306,8 +313,16 @@ methods to calculate meta-datas
   // 5. définir la taille des marges rL et tB
   getMargins = () => {
     if (isDevice) {
-      elementWidth = deviceHeight;
-      elementHeight = deviceHeight;
+      if (isRotate) {
+        diffWidth = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
+        diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
+
+        elementWidth = deviceWidth + diffWidth;
+        elementHeight = Math.abs(Math.sin(rotRadians) * deviceWidth) + Math.abs(Math.cos(rotRadians) * deviceHeight);
+      } else {
+        elementWidth = deviceWidth;
+        elementHeight = deviceHeight;
+      }
     } else {
       elementWidth = screenshotWidth;
       elementHeight = screenshotHeight;
@@ -317,7 +332,6 @@ methods to calculate meta-datas
     tBMargin = canvaHeight * tBMarginRate;
     sideMargin = Math.max(rLMargin, (canvaWidth - elementWidth) / 2);
     maxWidth = canvaWidth - rLMargin * 2;
-
   }
 
   // 6. définir le texte (splitting content etc)
@@ -461,6 +475,16 @@ methods to calculate meta-datas
 
   }
 
+  getRotateTranslations = () => {
+    if (rotRadians > 0) {
+      translateX += diffWidth + sideMargin;
+      translateY += 0;
+    } else {
+      translateX -= sideMargin;
+      translateY += diffHeight;
+    }
+  }
+
 
 /***************************************
 methods to draw and write on the canvas
@@ -600,14 +624,14 @@ the finale method where everything is played
       this.writeText(ctx, subtitleStart, this.state.subtitleColor, this.state.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
     }
 
-    // translation of the element (device and screenshot)
-    ctx.translate(translateX, translateY);
-
     // rotating if needed
-    if (rotate) {
-      ctx.translate((deviceWidth - sideMargin * 8)/2, 0);
-      ctx.rotate((Math.PI / 180) * 25);
-      ctx.translate(0, -200);
+    if (isRotate) {
+      this.getRotateTranslations();
+      ctx.translate(translateX, translateY);
+      ctx.rotate(rotRadians);
+    } else {
+      // translation of the element (device and screenshot)
+      ctx.translate(translateX, translateY);
     }
 
     // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is draw)
@@ -643,7 +667,7 @@ methods to display the dropdown menus
     const templates = Templates.map((template, index) => (
       <option key={index} value={template.index}>{template.name}</option>
     ));
-    return templates
+    return templates;
   }
 
 

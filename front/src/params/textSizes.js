@@ -14,7 +14,7 @@ export default {
   medium: {
     titleSize: 80,
     subtitleSize: 80,
-    titleToTitle: 0,
+    titleToTitle: 25,
     titleToSubtitle: 25,
     subtitleToSubtitle: 5,
     titleToDevice: 80,
@@ -36,5 +36,3 @@ export default {
     paddingTop: 27
   }
 }
-
-// device to title en medium fait 20 de moins que title to device car c'est l'espace laissé entre la top border et le caractère le plus haut du texte

@@ -43,16 +43,34 @@ export default [
   },
   {
     index: 6,
-    name: "rotate_caption_above",
+    name: "rotate_right_caption_above",
     device: true,
     caption: "above",
-    rotate: true
+    rotate: true,
+    rotation: 10
   },
   {
     index: 7,
-    name: "rotate_caption_below",
+    name: "rotate_left_caption_above",
+    device: true,
+    caption: "above",
+    rotate: true,
+    rotation: -10
+  },
+  {
+    index: 8,
+    name: "rotate_right_caption_below",
     device: true,
     caption: "below",
-    rotate: true
+    rotate: true,
+    rotation: 10
+  },
+  {
+    index: 9,
+    name: "rotate_left_caption_below",
+    device: true,
+    caption: "below",
+    rotate: true,
+    rotation: -10
   }
 ];
