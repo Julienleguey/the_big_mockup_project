@@ -97,6 +97,7 @@ let number = "";
 let caption = "";
 let isRotate = "";
 let isDevice = false;
+let isFull = false;
 
 let canvaWidth = 0;
 let canvaHeight = 0;
@@ -104,7 +105,10 @@ let canvaHeight = 0;
 let rLMargin = 0;
 let tBMargin = 0;
 let sideMargin = 0;
+let maxWidthText = 0;
+
 let maxWidth = 0;
+let maxHeight = 0;
 
 let deviceWidthStart = 0;
 let deviceHeightStart = 0;
@@ -145,7 +149,8 @@ let spaceFilledAbove = 0;
 let spaceFilledBelow = 0;
 
 let diffHeight = 0;
-let diffWidth = 0;
+let diffWidthRight = 0;
+let diffWidthLeft = 0;
 
 let translateX = 0;
 let translateY = 0;
@@ -181,7 +186,7 @@ lifecyle events
     // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
     this.setState({
       device: this.props.device,
-      template: "6",
+      template: "3",
       number: this.props.index + 1,
       backgroundColor: "#0f63c2",
       titleSize: "medium",
@@ -238,7 +243,7 @@ splittingContent = (ctx, content, fontSize) => {
     for (let j = 0; j < words.length; j++) {
 
       lineTest += `${words[j]} `;
-      if (ctx.measureText(lineTest).width < maxWidth) {
+      if (ctx.measureText(lineTest).width < maxWidthText) {
         lineOk = lineTest;
       } else {
         newArr.push(lineOk);
@@ -266,6 +271,7 @@ methods to calculate meta-datas
     isDevice = Templates[this.state.template].device;
     isRotate = Templates[this.state.template].rotate;
     rotRadians = (Math.PI / 180) * Templates[this.state.template].rotation;
+    isFull = Templates[this.state.template].full;
   }
 
   // 2. calculer la taille du nouveau canva
@@ -274,73 +280,20 @@ methods to calculate meta-datas
     canvaHeight = CanvasSizes[DeviceSize[device].canva].height;
   }
 
-  // 3. redimensionner le device s'il y en a un
-  redoDeviceForCanvas = () => {
-    // from width
-    const tempWidth = canvaWidth * ( 1 - rLMarginRate * 2);
-    const tempHeight = tempWidth * DeviceSize[device].height / DeviceSize[device].width;
-
-    // from height
-    const tempHeight2 = canvaHeight * ( 1 - tBMarginRate * 2);
-    const tempWidth2 = tempHeight2 * DeviceSize[device].width / DeviceSize[device].height;
-
-    if (tempWidth <= tempWidth2) {
-      deviceWidth = tempWidth;
-      deviceHeight = tempHeight;
-    } else {
-      deviceWidth = tempWidth2;
-      deviceHeight = tempHeight2;
-    }
-
-    resizeWithDevice = deviceWidth / DeviceSize[device].width;
-  }
-
-  // 4. redimensionner le screenshot (calcul selon le device ou selon le canvas s'il n'y a pas de device)
-  redoScreenshotForCanvas = () => {
-    if (isDevice) {
-      screenshotWidthStart = DeviceSize[device].ssWidthStart * resizeWithDevice;
-      screenshotHeightStart = DeviceSize[device].ssHeightStart * resizeWithDevice;
-      screenshotWidth = DeviceSize[device].ssWidth * resizeWithDevice;
-      screenshotHeight = DeviceSize[device].ssHeight * resizeWithDevice;
-    } else {
-      screenshotWidthStart = 0;
-      screenshotHeightStart = 0;
-      screenshotWidth = canvaWidth * resizeNoDevice;
-      screenshotHeight = DeviceSize[device].ssHeight * screenshotWidth / DeviceSize[device].ssWidth;
-    }
-  }
-
-  // 5. définir la taille des marges rL et tB
+  // 3. définir la taille des marges rL et tB et les max width & height
   getMargins = () => {
-    if (isDevice) {
-      if (isRotate) {
-        diffWidth = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
-        diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
-
-        elementWidth = deviceWidth + diffWidth;
-        elementHeight = Math.abs(Math.sin(rotRadians) * deviceWidth) + Math.abs(Math.cos(rotRadians) * deviceHeight);
-      } else {
-        elementWidth = deviceWidth;
-        elementHeight = deviceHeight;
-      }
-    } else {
-      elementWidth = screenshotWidth;
-      elementHeight = screenshotHeight;
-    }
-
     rLMargin = canvaWidth * rLMarginRate;
     tBMargin = canvaHeight * tBMarginRate;
-    sideMargin = Math.max(rLMargin, (canvaWidth - elementWidth) / 2);
-    maxWidth = canvaWidth - rLMargin * 2;
+    maxWidthText = canvaWidth - rLMargin * 2;
   }
 
-  // 6. définir le texte (splitting content etc)
+  // 4. définir le texte (splitting content etc)
   defineText = (ctx) => {
     titleSplited = this.splittingContent(ctx, this.state.titleContent, TextSizes[this.state.titleSize].titleSize);
     subtitleSplited = this.splittingContent(ctx, this.state.subtitleContent, TextSizes[this.state.subtitleSize].subtitleSize);
   }
 
-  // 7. calculer la hauteur occupée par le texte
+  // 5. calculer la hauteur occupée par le texte
   // une petite refactorisation ici ? Ou des commentaires au moins ?
   getTextDatas = () => {
     countTitleLines = titleSplited.length;
@@ -399,7 +352,91 @@ methods to calculate meta-datas
     spaceFilledByText = tBMargin + spaceFilledByTitle + spaceFilledBySubtitle;
   }
 
-  // 8. calculer la hauteur à laquelle écrire title et subtitle
+  // 6. now we can define the max height
+  getMaxDimensions = () => {
+    if (isRotate) {
+      diffWidthRight = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
+      diffWidthLeft = Math.abs(Math.sin(rotRadians) * deviceHeight);
+      diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
+    }
+
+    console.log(diffWidthRight);
+    if (isFull) {
+      if (isRotate) {
+        maxWidth = canvaWidth - diffWidthRight - diffWidthLeft;
+      } else {
+        maxWidth = canvaWidth - rLMargin * 2;
+      }
+      maxHeight = canvaHeight - spaceFilledByText - spacingToDevice - tBMargin;
+    } else {
+      maxWidth = canvaWidth - rLMargin * 2;
+      maxHeight = canvaHeight - tBMargin * 2;
+    }
+    console.log(`maxHeight: ${maxHeight}, canvaHeight: ${canvaHeight}, spaceFilledByText: ${spaceFilledByText}, spacingToDevice: ${spacingToDevice}, tBMargin: ${tBMargin}`);
+  }
+
+  // 7. redimensionner le device s'il y en a un
+  redoDeviceForCanvas = () => {
+    const tempWidth = maxWidth;
+    const tempHeight = tempWidth * DeviceSize[device].height / DeviceSize[device].width;
+
+    // from height
+    const tempHeight2 = maxHeight;
+    const tempWidth2 = tempHeight2 * DeviceSize[device].width / DeviceSize[device].height;
+
+    if (tempWidth <= tempWidth2) {
+      deviceWidth = tempWidth;
+      deviceHeight = tempHeight;
+    } else {
+      deviceWidth = tempWidth2;
+      deviceHeight = tempHeight2;
+    }
+
+    resizeWithDevice = deviceWidth / DeviceSize[device].width;
+
+    console.log(resizeWithDevice);
+    console.log(`deviceWidth: ${deviceWidth}, deviceHeight: ${deviceHeight}`)
+  }
+
+  // 8. redimensionner le screenshot (calcul selon le device ou selon le canvas s'il n'y a pas de device)
+  redoScreenshotForCanvas = () => {
+    if (isDevice) {
+      screenshotWidthStart = DeviceSize[device].ssWidthStart * resizeWithDevice;
+      screenshotHeightStart = DeviceSize[device].ssHeightStart * resizeWithDevice;
+      screenshotWidth = DeviceSize[device].ssWidth * resizeWithDevice;
+      screenshotHeight = DeviceSize[device].ssHeight * resizeWithDevice;
+    } else {
+      screenshotWidthStart = 0;
+      screenshotHeightStart = 0;
+      screenshotWidth = canvaWidth * resizeNoDevice;
+      screenshotHeight = DeviceSize[device].ssHeight * screenshotWidth / DeviceSize[device].ssWidth;
+    }
+  }
+
+  // 9. définir la taille des marges rL et tB
+  getElementSize = () => {
+    if (isDevice) {
+      if (isRotate) {
+        // diffWidth = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
+        // diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
+
+        elementWidth = deviceWidth + diffWidthRight;
+        elementHeight = Math.abs(Math.sin(rotRadians) * deviceWidth) + Math.abs(Math.cos(rotRadians) * deviceHeight);
+      } else {
+        elementWidth = deviceWidth;
+        elementHeight = deviceHeight;
+      }
+    } else {
+      elementWidth = screenshotWidth;
+      elementHeight = screenshotHeight;
+    }
+
+    sideMargin = Math.max(rLMargin, (canvaWidth - elementWidth) / 2);
+
+    console.log(`elementWidth: ${elementWidth}, elementHeight: ${elementHeight}`);
+  }
+
+  // 10. calculer la hauteur à laquelle écrire title et subtitle
   getTextStart = () => {
     let firstLineHeight = 0;
     if (countTitleLines > 0) {
@@ -427,7 +464,7 @@ methods to calculate meta-datas
     }
   }
 
-  // 9. calculer la hauteur occupée par intermediaryMargin
+  // 11. calculer la hauteur occupée par intermediaryMargin
   getIntermediaryMargin = () => {
     if ( (countTitleLines === 0 && countSubtitleLines === 0) || caption === "none") {
       isText = false;
@@ -439,7 +476,12 @@ methods to calculate meta-datas
       intermediaryMargin = (canvaHeight - elementHeight) / 2;
     } else {
       let marginLeft = 0;
-      marginLeft = (canvaHeight - elementHeight - spaceFilledByText) / 2;
+
+      if (isFull) {
+        marginLeft = (canvaHeight - elementHeight - spaceFilledByText - tBMargin) / 2;
+      } else {
+        marginLeft = (canvaHeight - elementHeight - spaceFilledByText) / 2;
+      }
 
       if (caption === "above" && spacingToDevice > marginLeft) {
         intermediaryMargin = spacingToDevice;
@@ -449,9 +491,10 @@ methods to calculate meta-datas
         intermediaryMargin = marginLeft;
       }
     }
+    console.log(`intermediaryMargin: ${intermediaryMargin}`);
   }
 
-  // 10. calculer l'espace occupé par le bloc au-dessus ou au-dessous de l'element:
+  // 12. calculer l'espace occupé par le bloc au-dessus ou au-dessous de l'element:
   getSpaceFilled = () => {
     if (!isText) {
       spaceFilledNone = intermediaryMargin;
@@ -461,7 +504,7 @@ methods to calculate meta-datas
     }
   }
 
-  // 11. calculer les translations : translateX et translateY
+  // 13. calculer les translations : translateX et translateY
   getTranslations = () => {
     translateX = sideMargin;
 
@@ -477,7 +520,7 @@ methods to calculate meta-datas
 
   getRotateTranslations = () => {
     if (rotRadians > 0) {
-      translateX += diffWidth + sideMargin;
+      translateX += diffWidthRight + sideMargin;
       translateY += 0;
     } else {
       translateX -= sideMargin;
@@ -546,7 +589,7 @@ methods to draw and write on the canvas
     for (let i = 0; i < content.length; i++) {
       const gap = ctx.measureText(" ").width;
 
-      ctx.fillText(content[i], (canvaWidth + gap)/2, heightToDrawText, maxWidth);
+      ctx.fillText(content[i], (canvaWidth + gap)/2, heightToDrawText, maxWidthText);
       // ajout d'un interligne line/line
       heightToDrawText += (lineToLine + fontSize);
     }
@@ -602,12 +645,14 @@ the finale method where everything is played
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
 
     // getting meta-datas
-    this.redoDeviceForCanvas();
-    this.redoScreenshotForCanvas();
     this.getMargins();
     this.defineText(ctx);
     this.getTextDatas();
     this.getTextSize();
+    this.getMaxDimensions();
+    this.redoDeviceForCanvas();
+    this.redoScreenshotForCanvas();
+    this.getElementSize();
     this.getTextStart();
     this.getTitleStart();
     this.getSubtitleStart();
