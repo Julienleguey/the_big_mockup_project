@@ -82,21 +82,28 @@ class Project extends Component {
           canvas: res.data.Canvas
         })
       }).then( () => {
-        console.log(this.state.name);
-        console.log(this.state.os);
-        console.log(this.state.device);
-        console.log(this.state.canvas);
+        // console.log(this.state.name);
+        // console.log(this.state.os);
+        // console.log(this.state.device);
+        // console.log(this.state.canvas);
       }).catch(err => {
         console.error(err);
       });
   }
 
 
+
+
   displayCanvas = () => {
+    // const canvas = this.state.canvas.map((canva, index) => (
+    //   <Canvas key={index} index={index} canva={canva} size={DeviceSize[this.state.device]} device={this.state.device}/>
+    // ));
     const canvas = this.state.canvas.map((canva, index) => (
       <Canvas key={index} index={index} canva={canva} size={DeviceSize[this.state.device]} device={this.state.device}/>
     ));
     return canvas;
+
+
   }
 
   handleChange = (e) => {

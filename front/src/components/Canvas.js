@@ -114,6 +114,8 @@ let deviceWidthStart = 0;
 let deviceHeightStart = 0;
 let deviceWidth = 0;
 let deviceHeight = 0;
+let allDevices = {};
+
 
 let resizeWithDevice = 0;
 
@@ -141,7 +143,7 @@ let spaceFilledBySubtitle = 0;
 let spaceFilledByText = 0;
 
 let isText = false;
-let elementHeight = 0; // it's the height of the device if there is one, otherwise it's the height of the screenshot
+let elementHeight = 0;
 let elementWidth = 0;
 let intermediaryMargin = 0;
 let spaceFilledNone = 0;
@@ -185,8 +187,7 @@ lifecyle events
   componentWillMount = () => {
     // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
     this.setState({
-      device: this.props.device,
-      template: "3",
+      template: this.props.canva.template,
       number: this.props.index + 1,
       backgroundColor: "#0f63c2",
       titleSize: "medium",
@@ -194,12 +195,11 @@ lifecyle events
       titleFont: "Arial",
       subtitleFont: "Arial",
       titleColor: "#ffffff",
-      subtitleColor: "#ffffff",
+      subtitleColor: "#ffffff"
     });
   }
 
   componentDidMount = () => {
-
     const screenshot = new Image();
 
     this.createCanvas();
@@ -208,7 +208,6 @@ lifecyle events
     this.setState({
       screenshot: screenshot
     });
-
   }
 
   componentDidUpdate = () => {
@@ -225,9 +224,9 @@ methods to calculate the text
 *****************************/
 
 splittingContent = (ctx, content, fontSize) => {
-  ctx.fillStyle = 'white';
+  // ctx.fillStyle = 'white';
   ctx.font = `${fontSize}px Arial`;
-  ctx.textAlign = 'center';
+  // ctx.textAlign = 'center';
 
   const arr = content.split("\n");
   const newArr = [];
@@ -262,7 +261,6 @@ splittingContent = (ctx, content, fontSize) => {
 /*******************************
 methods to calculate meta-datas
 *******************************/
-
   // 1. définir le contexte : device, number, caption, rotate
   getContext = () => {
     device = this.props.device;
@@ -272,6 +270,11 @@ methods to calculate meta-datas
     isRotate = Templates[this.state.template].rotate;
     rotRadians = (Math.PI / 180) * Templates[this.state.template].rotation;
     isFull = Templates[this.state.template].full;
+
+    allDevices[`datas${this.props.index}`]= {
+        deviceWidth: 0,
+        deviceHeight: 0
+    };
   }
 
   // 2. calculer la taille du nouveau canva
@@ -360,7 +363,6 @@ methods to calculate meta-datas
       diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
     }
 
-    console.log(diffWidthRight);
     if (isFull) {
       if (isRotate) {
         maxWidth = canvaWidth - diffWidthRight - diffWidthLeft;
@@ -372,7 +374,7 @@ methods to calculate meta-datas
       maxWidth = canvaWidth - rLMargin * 2;
       maxHeight = canvaHeight - tBMargin * 2;
     }
-    console.log(`maxHeight: ${maxHeight}, canvaHeight: ${canvaHeight}, spaceFilledByText: ${spaceFilledByText}, spacingToDevice: ${spacingToDevice}, tBMargin: ${tBMargin}`);
+
   }
 
   // 7. redimensionner le device s'il y en a un
@@ -392,10 +394,12 @@ methods to calculate meta-datas
       deviceHeight = tempHeight2;
     }
 
-    resizeWithDevice = deviceWidth / DeviceSize[device].width;
+    console.log(this.props.index, deviceWidth, deviceHeight);
 
-    console.log(resizeWithDevice);
-    console.log(`deviceWidth: ${deviceWidth}, deviceHeight: ${deviceHeight}`)
+    allDevices[`datas${this.props.index}`].deviceWidth = deviceWidth;
+    allDevices[`datas${this.props.index}`].deviceHeight = deviceHeight;
+
+    resizeWithDevice = deviceWidth / DeviceSize[device].width;
   }
 
   // 8. redimensionner le screenshot (calcul selon le device ou selon le canvas s'il n'y a pas de device)
@@ -417,9 +421,6 @@ methods to calculate meta-datas
   getElementSize = () => {
     if (isDevice) {
       if (isRotate) {
-        // diffWidth = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
-        // diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
-
         elementWidth = deviceWidth + diffWidthRight;
         elementHeight = Math.abs(Math.sin(rotRadians) * deviceWidth) + Math.abs(Math.cos(rotRadians) * deviceHeight);
       } else {
@@ -432,8 +433,6 @@ methods to calculate meta-datas
     }
 
     sideMargin = Math.max(rLMargin, (canvaWidth - elementWidth) / 2);
-
-    console.log(`elementWidth: ${elementWidth}, elementHeight: ${elementHeight}`);
   }
 
   // 10. calculer la hauteur à laquelle écrire title et subtitle
@@ -491,7 +490,6 @@ methods to calculate meta-datas
         intermediaryMargin = marginLeft;
       }
     }
-    console.log(`intermediaryMargin: ${intermediaryMargin}`);
   }
 
   // 12. calculer l'espace occupé par le bloc au-dessus ou au-dessous de l'element:
@@ -620,7 +618,7 @@ methods to draw and write on the canvas
       const device = new Image();
       device.src = require(`../mockups/${this.props.device}.png`);
       device.onload = () => {
-        ctx.drawImage(device, deviceWidthStart, deviceHeightStart, deviceWidth, deviceHeight);
+        ctx.drawImage(device, deviceWidthStart, deviceHeightStart, allDevices[`datas${this.props.index}`].deviceWidth, allDevices[`datas${this.props.index}`].deviceHeight);
       }
     }
   }
@@ -642,7 +640,14 @@ the finale method where everything is played
     this.getCanvaDatas();
     this.destroyPrevCanvas();
     this.createEmptyCanvas();
+
+    // const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+
+    // ctx.mozImageSmoothingEnabled = false;
+    // ctx.webkitImageSmoothingEnabled = false;
+    // ctx.msImageSmoothingEnabled = false;
+    // ctx.imageSmoothingEnabled = false;
 
     // getting meta-datas
     this.getMargins();
