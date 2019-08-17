@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authenticateUser = require("./middlewares").authenticateUser;
+const projectOwner = require("./middlewares").projectOwner;
 const User = require("../models").User;
 const Project = require("../models").Project;
 const Canva = require("../models").Canva;
@@ -89,6 +90,58 @@ router.post('/new', authenticateUser, function(req, res, next) {
 
 });
 
+
+// update a project
+router.put('/project/:id', authenticateUser, projectOwner, function(req, res, next) {
+  const id = req.params.id;
+  // const id = 30;
+
+  let projectRes = false;
+  let canvasRes = [];
+
+  Project.findOne({ where: { id: id } }).then( (project) => {
+    if (project) {
+      project.update(req.body.project);
+    } else {
+      // project not found
+      res.status(404).send("Something went wrong! We couldn't find your project! Please, try again!");
+    }
+  }).then( () => {
+    projectRes = true;
+  }).then( () => {
+    const canvasArr = [];
+
+    for (let [key, value] of Object.entries(req.body.canvas)) {
+      canvasArr.push(value);
+    }
+
+    // mettre un if (canvaFull) ici pour pas lancer l'itération s'il n'y a pas de canvas ?
+    canvasArr.forEach((canvaFull, index) => {
+      Canva.findOne({ where: {id: canvaFull.metadatas.canvasId} }).then ( (canva) => {
+        if (canva) {
+          canva.update(canvaFull.datas);
+        } else {
+          // project not found
+          res.status(404).send(`It seems the mockup ${canvaFull.metadatas.index + 1} doesn't exist.`);
+        }
+      }).then( () => {
+        // res.status(200).send("canva updaté");
+        canvasRes.push({[`${canvaFull.metadatas.index}`]: true});
+        if (index === canvasArr.length - 1) {
+          // res.status(200).send({projectRes, canvasRes});
+          res.status(200).send("Your changes have been saved!");
+        }
+      }).catch( err => {
+        res.status(500).send("Something went wrong while updating the project. Please try again!");
+      })
+    })
+
+  }).then( () => {
+    res.status(200).send("Your changes have been saved!");
+  }).catch(function(err){
+    res.status(500).send("Something went wrong while updating the project. Please try again!");
+  });
+});
 
 
 

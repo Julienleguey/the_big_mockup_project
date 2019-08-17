@@ -1,1 +1,2 @@
-add.svg : https://www.flaticon.com/free-icon/add_149705#term=plus&page=1&position=15
+add.svg: https://www.flaticon.com/free-icon/add_149705#term=plus&page=1&position=15
+close.svg: https://www.flaticon.com/authors/egor-rumyantsev

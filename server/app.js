@@ -30,7 +30,9 @@ const app = express();
 app.use(morgan('dev'));
 
 // setup bodyParser which allows us to use req.body
-app.use(bodyParser());
+// app.use(bodyParser()); ==> deprecated, replaced by below
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 
 // setup cors

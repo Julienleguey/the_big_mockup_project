@@ -116,7 +116,6 @@ let deviceWidth = 0;
 let deviceHeight = 0;
 let allDevices = {};
 
-
 let resizeWithDevice = 0;
 
 let screenshotWidthStart = 0;
@@ -151,6 +150,7 @@ let spaceFilledAbove = 0;
 let spaceFilledBelow = 0;
 
 let diffHeight = 0;
+let diffHeightTop = 0;
 let diffWidthRight = 0;
 let diffWidthLeft = 0;
 
@@ -189,13 +189,15 @@ lifecyle events
     this.setState({
       template: this.props.canva.template,
       number: this.props.index + 1,
-      backgroundColor: "#0f63c2",
-      titleSize: "medium",
-      subtitleSize: "medium",
-      titleFont: "Arial",
-      subtitleFont: "Arial",
-      titleColor: "#ffffff",
-      subtitleColor: "#ffffff"
+      backgroundColor: this.props.canva.backgroundColor,
+      titleContent: this.props.canva.titleText,
+      titleSize: this.props.canva.titleSize,
+      titleFont: this.props.canva.titleFont,
+      titleColor: this.props.canva.titleColor,
+      subtitleContent: this.props.canva.subtitleText,
+      subtitleSize: this.props.canva.subtitleSize,
+      subtitleFont: this.props.canva.subtitleFont,
+      subtitleColor: this.props.canva.subtitleColor
     });
   }
 
@@ -270,10 +272,12 @@ methods to calculate meta-datas
     isRotate = Templates[this.state.template].rotate;
     rotRadians = (Math.PI / 180) * Templates[this.state.template].rotation;
     isFull = Templates[this.state.template].full;
+    deviceWidth = DeviceSize[device].width;
+    deviceHeight = DeviceSize[device].height;
 
     allDevices[`datas${this.props.index}`]= {
-        deviceWidth: 0,
-        deviceHeight: 0
+      deviceWidth: 0,
+      deviceHeight: 0
     };
   }
 
@@ -357,6 +361,10 @@ methods to calculate meta-datas
 
   // 6. now we can define the max height
   getMaxDimensions = () => {
+    diffWidthRight = 0;
+    diffWidthLeft = 0;
+    diffHeight = 0;
+
     if (isRotate) {
       diffWidthRight = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
       diffWidthLeft = Math.abs(Math.sin(rotRadians) * deviceHeight);
@@ -365,7 +373,12 @@ methods to calculate meta-datas
 
     if (isFull) {
       if (isRotate) {
-        maxWidth = canvaWidth - diffWidthRight - diffWidthLeft;
+        // différentes possibilités de maxwidth et il y en a d'autres
+        // maxWidth = canvaWidth - diffWidthRight - diffWidthLeft;
+        // maxWidth = canvaWidth - diffWidthLeft/2 - diffWidthRight;
+        // maxWidth = canvaWidth;
+        // maxWidth = canvaWidth - rLMargin * 2;
+        maxWidth = canvaWidth - rLMargin;
       } else {
         maxWidth = canvaWidth - rLMargin * 2;
       }
@@ -393,8 +406,6 @@ methods to calculate meta-datas
       deviceWidth = tempWidth2;
       deviceHeight = tempHeight2;
     }
-
-    console.log(this.props.index, deviceWidth, deviceHeight);
 
     allDevices[`datas${this.props.index}`].deviceWidth = deviceWidth;
     allDevices[`datas${this.props.index}`].deviceHeight = deviceHeight;
@@ -513,16 +524,16 @@ methods to calculate meta-datas
     } else if (caption === "below") {
       translateY = canvaHeight - elementHeight - spaceFilledBelow;
     }
-
   }
 
   getRotateTranslations = () => {
     if (rotRadians > 0) {
-      translateX += diffWidthRight + sideMargin;
+      translateX += diffWidthRight + sideMargin * 1.3;
       translateY += 0;
     } else {
-      translateX -= sideMargin;
-      translateY += diffHeight;
+      diffHeightTop = Math.abs(Math.tan(rotRadians) * (deviceWidth - diffWidthRight));
+      translateX -= sideMargin * 1.3;
+      translateY += diffHeightTop;
     }
   }
 
@@ -623,6 +634,29 @@ methods to draw and write on the canvas
     }
   }
 
+
+  sendCanvasDatasToProject = () => {
+    const infos = {
+      metadatas: {
+        index: this.props.index,
+        canvasId: this.props.canva.id
+      },
+      datas: {
+        template: this.state.template,
+        backgroundColor: this.state.backgroundColor,
+        titleContent: this.state.titleContent,
+        titleSize: this.state.titleSize,
+        titleFont: this.state.titleFont,
+        titleColor: this.state.titleColor,
+        subtitleContent: this.state.subtitleContent,
+        subtitleSize: this.state.subtitleSize,
+        subtitleFont: this.state.subtitleFont,
+        subtitleColor: this.state.subtitleColor
+      }
+    };
+    this.props.getCanvasDatas(infos);
+  }
+
   downloadIt = (index) => {
     const download = document.querySelector(`#a-${index}`);
     const image = document.querySelector(`#canva-${index}`).toDataURL('image/jpeg', 0.7).replace("image/jpg", "image/octet-stream");
@@ -691,6 +725,8 @@ the finale method where everything is played
     } else {
       this.addCanvasDevice(ctx);
     }
+
+    this.sendCanvasDatasToProject();
 
   }
 

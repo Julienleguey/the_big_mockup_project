@@ -66,7 +66,30 @@ function profileOwner(req, res, next) {
   });
 };
 
+function projectOwner(req, res, next) {
+  const id = req.params.id;
+  // const id = 30;
+
+  Project.findOne({where: {id: id}}).then((project) => {
+    const authenticatedUser = req.currentUser.id;
+    const projectOwner = project.userId;
+
+    if (authenticatedUser === projectOwner) {
+      console.log("It's the correct user!");
+      next();
+    } else {
+      // project doesn't belong to the user
+      res.status(403).send("The project you're trying to access doesn't belong to you! Try to login with a different email address.");
+    }
+  }).catch( err => {
+    // project doesn't exist
+    // same error message to stop users to try and find the number of project in the db
+    res.status(403).send("The project you're trying to access doesn't belong to you! Try to login with a different email address.");
+  });
+}
+
 module.exports = {
-    authenticateUser : authenticateUser,
-    profileOwner : profileOwner
+    authenticateUser: authenticateUser,
+    profileOwner: profileOwner,
+    projectOwner: projectOwner
 }
