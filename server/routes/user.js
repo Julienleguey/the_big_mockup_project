@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authenticateUser = require("./middlewares").authenticateUser;
 const profileOwner = require("./middlewares").profileOwner;
+const fs = require('fs');
+const path = require('path');
 const User = require("../models").User;
 const Project = require("../models").Project;
 const Sequelize = require('sequelize');
@@ -10,6 +12,19 @@ const Op = Sequelize.Op;
 // adding bcrypt to hash the passwords
 const bcrypt = require('bcryptjs');
 const salt = bcrypt.genSaltSync(10);
+
+/***********************************************************
+fonction to create a folder for the screenshots of the user
+***********************************************************/
+function createUserFolder(user) {
+  const directoryPath = `${__dirname}/../screenshots/${user.id}`;
+  const directory = path.normalize(directoryPath);
+
+  fs.mkdir(directory, { recursive: true }, (err) => {
+    if (err) throw err;
+  });
+}
+
 
 /*************
 User routes
@@ -69,6 +84,9 @@ router.post('/new', function(req, res, next) {
         err.message = 'This email address is already used! Try to log in!';
         return next(err);
       } else {
+        // create a folder
+        createUserFolder(user);
+
         res.redirect("/");
       }
     })

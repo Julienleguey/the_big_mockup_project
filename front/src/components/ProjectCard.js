@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
 import styled from "styled-components";
 
-const Card = styled.a`
+import Project from './Project';
+
+const Card = styled(Link)`
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -28,8 +31,8 @@ class ProjectCard extends Component {
 
   render() {
     return(
-      <Card href={`/project/${this.props.id}`}>
-        <h4>{this.props.name}</h4>
+      <Card to={{pathname: `/project`, state: {userId: this.props.userId, projectId: this.props.projectId} }}>
+          <h4>{this.props.name}</h4>
       </Card>
     );
   }

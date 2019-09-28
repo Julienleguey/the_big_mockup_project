@@ -21,7 +21,6 @@ const Wrapper = styled.div`
   justify-content: center;
 `;
 
-
 const Title = styled.div`
   margin: 0 auto;
 `;
@@ -85,6 +84,8 @@ class Project extends Component {
       flash: false,
       type: "standard",
       message: "",
+      userId: "",
+      projectId: "",
       name: "",
       os: "",
       device: "",
@@ -93,8 +94,11 @@ class Project extends Component {
   }
 
   componentWillMount = () => {
-    console.log(canvasDatas);
-    const projectId = this.props.match.params.id;
+    this.getProject();
+  }
+
+  getProject = () => {
+    const projectId = this.props.location.state.projectId;
 
     const emailAddress = localStorage.getItem('emailAddress');
     const password = localStorage.getItem('password');
@@ -106,7 +110,8 @@ class Project extends Component {
       }}).then( res => {
         console.log(res.data);
         this.setState({
-          id: res.data.id,
+          userId: this.props.location.state.userId,
+          projectId: this.props.location.state.projectId,
           name: res.data.name,
           os: res.data.os,
           device: res.data.device,
@@ -122,12 +127,24 @@ class Project extends Component {
       });
   }
 
+  reloadProject = () => {
+    this.getProject();
+  }
 
   displayCanvas = () => {
     const canvas = this.state.canvas.map((canva, index) => {
       canvasDatas[`canva_${index}`] = {};
       return (
-        <Canvas key={index} index={index} canva={canva} size={DeviceSize[this.state.device]} device={this.state.device} getCanvasDatas={this.getCanvasDatas}/>
+        <Canvas
+          key={index}
+          index={index}
+          canva={canva}
+          size={DeviceSize[this.state.device]}
+          device={this.state.device}
+          getCanvasDatas={this.getCanvasDatas}
+          userId={this.state.userId}
+          deleteCanva={this.deleteCanva}
+        />
       )
     });
     return canvas;
@@ -137,12 +154,21 @@ class Project extends Component {
     this.setState({ [e.target.name]: e.target.value});
   }
 
+  setFlash = (type, msg) => {
+    this.setState({
+      flash: true,
+      type: type,
+      message: msg
+    })
+  }
+
   saveWork = () => {
     this.saveProject();
   }
 
   getCanvasDatas = (infos) => {
     canvasDatas[`canva_${infos.metadatas.index}`] = infos;
+    console.log(canvasDatas);
   }
 
   closeFlash = () => {
@@ -151,42 +177,144 @@ class Project extends Component {
     });
   }
 
-  saveProject = () => {
+  saveScreenshotTest = () => {
     const emailAddress = localStorage.getItem('emailAddress');
     const password = localStorage.getItem('password');
 
-    axios.put(`http://localhost:5000/projects/project/${this.state.id}`, {
-      project: {
-        name: this.state.name,
-        os: this.state.os,
-        device: this.state.device
-      },
-      canvas: canvasDatas
-    }, {
-      auth: {
+    const temp = [];
+
+    for (let [key, value] of Object.entries(canvasDatas)) {
+      temp.push(value);
+    }
+
+    const FormData = require('form-data');
+    const data = new FormData();
+
+    temp.forEach( (canva) => {
+      data.append('screenshots', canva.screenshot)
+    });
+
+    const projbla = {
+      name: this.state.name,
+      os: this.state.os,
+      device: this.state.device
+    };
+
+    const metas = {
+      userId: this.state.userId,
+      projectId: this.state.projectId
+    }
+
+    // data.append('project', new Blob([projbla],{type:'application/json'}));
+    data.append("project", JSON.stringify(projbla));
+    data.append('canvas', JSON.stringify(canvasDatas));
+    data.append('metas', JSON.stringify(metas));
+
+    axios.post(`http://localhost:5000/projects/test`, data,
+      {
+        auth: {
         username: emailAddress,
         password: password
-      }}).then( res => {
-        console.log(res);
+      }},
+      {
+        headers: {'Content-Type': 'multipart/form-data' }
+      }
+    ).then( res => {
         this.setState({
           flash: true,
           type: "success",
           message: res.data
-        })
+        });
+        this.reloadProject();
       }).catch( err => {
-        console.log(err.response);
-        this.setState({
-          flash: true,
-          type: "error",
-          message: err.response.data
-        })
+        console.log(err);
+        // this.setState({
+        //   flash: true,
+        //   type: "error",
+        //   message: err.response.data
+        // })
       });
   }
+
+  addNewCanva = () => {
+    const emailAddress = localStorage.getItem('emailAddress');
+    const password = localStorage.getItem('password');
+
+    axios.post(`http://localhost:5000/canvas/new`, {
+      projectId: this.state.projectId,
+      template: 1
+    }, {
+      auth: {
+        username: emailAddress,
+        password: password
+      },
+    }).then( res => {
+      this.setState({
+        canvas: this.state.canvas.concat(res.data),
+        flash: true,
+        type: "success",
+        message: "Mockup added!"
+      })
+    }).catch(err => {
+      this.setState({
+        flash: true,
+        type: "error",
+        message: "Something went wrong! Please save your changes and reload the page."
+      })
+    })
+
+  }
+
+
+  deleteCanva = (canvaId, screenshotUrl) => {
+    const data = {
+      userId: this.state.userId,
+      projectId: this.state.projectId,
+      screenshotUrl: screenshotUrl
+    };
+
+    const emailAddress = localStorage.getItem('emailAddress');
+    const password = localStorage.getItem('password');
+
+    axios.delete(`http://localhost:5000/canvas/delete/${canvaId}`,
+      { params: data,
+        auth: {
+        username: emailAddress,
+        password: password
+      }}
+    ).then( res => {
+        let canvaToDelete = {};
+        this.state.canvas.find(canva => {
+          if (canva.id === canvaId) {
+            console.log(canva);
+            canvaToDelete = canva;
+          }
+        })
+
+        const filteredArray = this.state.canvas.filter(canvaToKeep => canvaToKeep !== canvaToDelete);
+        console.log(filteredArray);
+        this.setState({
+          canvas: filteredArray
+        })
+
+        this.setFlash("success", "The mockup was successfully deleted!");
+        // this.reloadProject();
+        // on ne reload surtout pas ! On le vire du state !
+      }).catch( err => {
+        console.error(err);
+        // this.setState({
+        //   flash: true,
+        //   type: "error",
+        //   message: err.response.data
+        // })
+      });
+  }
+
 
   render() {
     return(
       <DoubleWrapper>
-        <Flash flash={this.state.flash} type={this.state.type} message={this.state.message}  closeFlash={this.closeFlash}/>
+        <Flash flash={this.state.flash} type={this.state.type} message={this.state.message} closeFlash={this.closeFlash}/>
         <Wrapper>
           <Title>
             <h2>{this.state.name}</h2>
@@ -217,10 +345,11 @@ class Project extends Component {
               </select>
             </Filter>
           </FiltersContainer>
-          <SaveButton onClick={ () => this.saveWork()}>SAVE</SaveButton>
+          {/* <SaveButton onClick={ () => this.saveWork()}>SAVE</SaveButton> */}
+          <SaveButton onClick={ () => this.saveScreenshotTest()}>SAVE SCREENSHOTS</SaveButton>
           <Container>
             {this.displayCanvas()}
-            <NewCanva>
+            <NewCanva onClick={() => this.addNewCanva()}>
               <img src={plus} alt="add a new canva" />
             </NewCanva>
           </Container>

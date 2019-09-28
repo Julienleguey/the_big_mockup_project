@@ -35,7 +35,7 @@ class App extends Component {
               <Route exact path="/signin" render={ () => <SignIn /> } />
               <Route exact path="/signout" render={ () => <SignOut /> } />
               <Route exact path="/onboarding-project" render={ () => <OnboardingProject /> } />
-              <Route exact path="/project/:id" render={ () => <Project /> } />
+              <Route exact path="/project" render={ () => <Project /> } />
             </Switch>
 
           </div>

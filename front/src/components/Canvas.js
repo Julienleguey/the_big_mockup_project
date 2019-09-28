@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
 
 import CanvasSizes from '../params/canvasSizes.js';
 import DeviceSize from '../params/deviceSize.js';
@@ -70,6 +71,18 @@ const Settings = styled.div`
 
 const TextArea = styled.textarea`
   resize: vertical;
+`;
+
+const DeleteButton = styled.div`
+  display: flex;
+  width: 50%;
+  height: 30px;
+  margin: 0 auto;
+  border: 1px solid red;
+
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 const DlContainer = styled.a`
@@ -168,6 +181,7 @@ class Canvas extends Component {
       newScreenshot: false,
       screenshotPresent: false,
       screenshot: "",
+      screenshotURL: "",
       backgroundColor: "",
       titleContent: "",
       titleSize: "",
@@ -176,7 +190,16 @@ class Canvas extends Component {
       subtitleContent: "",
       subtitleSize: "",
       subtitleColor: "",
-      subtitleFont: ""
+      subtitleFont: "",
+      isDevice: false,
+      deviceWidthStart: 0,
+      deviceHeightStart: 0,
+      deviceWidth: 0,
+      deviceHeight: 0,
+      screenshotWidthStart: 0,
+      screenshotHeightStart: 0,
+      screenshotWidth: 0,
+      screenshotHeight: 0
     };
   }
 
@@ -190,26 +213,66 @@ lifecyle events
       template: this.props.canva.template,
       number: this.props.index + 1,
       backgroundColor: this.props.canva.backgroundColor,
-      titleContent: this.props.canva.titleText,
+      titleContent: this.props.canva.titleContent,
       titleSize: this.props.canva.titleSize,
       titleFont: this.props.canva.titleFont,
       titleColor: this.props.canva.titleColor,
-      subtitleContent: this.props.canva.subtitleText,
+      subtitleContent: this.props.canva.subtitleContent,
       subtitleSize: this.props.canva.subtitleSize,
       subtitleFont: this.props.canva.subtitleFont,
-      subtitleColor: this.props.canva.subtitleColor
+      subtitleColor: this.props.canva.subtitleColor,
+      screenshotURL: this.props.canva.screenshotURL
     });
   }
 
   componentDidMount = () => {
+    // const screenshot = new Image();
+
+    // ici on essaye de récupérer l'image du serveur
+    // c'est un gros foutoir
+    // 1. on appelle l'url de l'image
+    // 2. on en extraie une string (base64)
+    // 3. on en fait un Blob
+    // 4. on peut faire un file du Blob
+    // 5. on peut mettre le file dans le state
+
+    // A REFACTORISER
+    // il faudrait renommer les screenshots en fonction de l'index du canva avant de les uploader pour éviter les doublons
+        // (ou se baser sur la méthode pour renommer les fichiers avant de les dl)
+    // dans le get, il faudrait récupérer le bon name
+    // on a toujours le problème de dimension du screenshot qui change après la sauvegarde
+
+
     const screenshot = new Image();
 
-    this.createCanvas();
+    if (this.props.canva.screenshotURL !== null) {
+      axios.get(
+        `http://localhost:5000${this.state.screenshotURL}`,
+        { responseType: 'arraybuffer' },
+      )
+      .then(response => {
+        const base64 = btoa(
+          new Uint8Array(response.data).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            '',
+          ),
+        );
 
-    // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
-    this.setState({
-      screenshot: screenshot
-    });
+        const truc = `data:image/png;base64,${base64}`;
+        const trucBlob = this.base64ImageToBlob(truc);
+
+        const trucFile = new File([trucBlob], "machin.png");
+
+        // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
+          this.setState({
+            screenshotPresent: true,
+            screenshot: trucFile
+          });
+
+      });
+    }
+
+    this.createCanvas();
   }
 
   componentDidUpdate = () => {
@@ -219,6 +282,61 @@ lifecyle events
   handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value});
   }
+
+  base64ImageToBlob = (str) => {
+    // extract content type and base64 payload from original string
+    var pos = str.indexOf(';base64,');
+    var type = str.substring(5, pos);
+    var b64 = str.substr(pos + 8);
+
+    // decode base64
+    var imageContent = atob(b64);
+
+    // create an ArrayBuffer and a view (as unsigned 8-bit)
+    var buffer = new ArrayBuffer(imageContent.length);
+    var view = new Uint8Array(buffer);
+
+    // fill the view, using the decoded base64
+    for(var n = 0; n < imageContent.length; n++) {
+      view[n] = imageContent.charCodeAt(n);
+    }
+
+    // convert ArrayBuffer to Blob
+    var blob = new Blob([buffer], { type: type });
+
+    return blob;
+  }
+
+  addDeviceCoordinatesToState = () => {
+    if (this.state.isDevice !== isDevice ||
+        this.state.deviceWidthStart !== deviceWidthStart ||
+        this.state.deviceHeightStart !== deviceHeightStart ||
+        this.state.deviceWidth !== allDevices[`datas${this.props.index}`].deviceWidth ||
+        this.state.deviceHeight !== allDevices[`datas${this.props.index}`].deviceHeight) {
+      this.setState({
+        isDevice: isDevice,
+        deviceWidthStart: deviceWidthStart,
+        deviceHeightStart: deviceHeightStart,
+        deviceWidth: deviceWidth,
+        deviceHeight: deviceHeight
+      })
+    }
+  }
+
+  addScreenshotCoordinatesToState = () => {
+    if (this.state.screenshotWidthStart !== screenshotWidthStart ||
+        this.state.screenshotHeightStart !== screenshotHeightStart ||
+        this.state.screenshotWidth !== screenshotWidth ||
+        this.state.screenshotHeight !== screenshotHeight) {
+      this.setState({
+        screenshotWidthStart: screenshotWidthStart,
+        screenshotHeightStart: screenshotHeightStart,
+        screenshotWidth: screenshotWidth,
+        screenshotHeight: screenshotHeight
+      });
+    }
+  }
+
 
 
 /*****************************
@@ -411,6 +529,8 @@ methods to calculate meta-datas
     allDevices[`datas${this.props.index}`].deviceHeight = deviceHeight;
 
     resizeWithDevice = deviceWidth / DeviceSize[device].width;
+
+    this.addDeviceCoordinatesToState();
   }
 
   // 8. redimensionner le screenshot (calcul selon le device ou selon le canvas s'il n'y a pas de device)
@@ -426,6 +546,8 @@ methods to calculate meta-datas
       screenshotWidth = canvaWidth * resizeNoDevice;
       screenshotHeight = DeviceSize[device].ssHeight * screenshotWidth / DeviceSize[device].ssWidth;
     }
+
+    this.addScreenshotCoordinatesToState();
   }
 
   // 9. définir la taille des marges rL et tB
@@ -566,19 +688,20 @@ methods to draw and write on the canvas
 
   uploadScreenshot = (e) => {
     // e.preventDefault();
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const screenshot = this.state.screenshot;
-      screenshot.src = event.target.result;
-      this.setState({
-        screenshot: screenshot
-      })
-    }
-    reader.readAsDataURL(e.target.files[0]);
+    // const extension = e.target.files[0].name.substring(e.target.files[0].name.length-3, e.target.files[0].name.length);
+    const blob = e.target.files[0].slice(0, e.target.files[0].size, e.target.files[0].type);
+    // const newFile = new File ([blob], `${this.props.canva.id}.${extension}`, {type: e.target.files[0].type});
+    const newFile = new File ([blob], `${this.props.canva.id}.png`, {type: e.target.files[0].type});
+    // WARNING : I save the uploaded image with the extension "png" to make sure the new image will be saved on the last one and I won't have an image 28.jpg and a 28.png
+    // it works with the jpg I tested but it couldn't
+    // a solution would be to use the image extension for the new name of the image (see the 2 lines commented above)
+    // and to delete server side the previous image (tricky, and I'm lazy, so I didn't do it)
 
     this.setState({
       newScreenshot: true,
-      screenshotPresent: true
+      screenshotPresent: true,
+      screenshot: newFile,
+      screenshotURL: `/${this.props.userId}/${this.props.canva.projectId}/${newFile.name}`
     })
   }
 
@@ -605,41 +728,35 @@ methods to draw and write on the canvas
   }
 
   addCanvasScreenshot = (ctx) => {
-    // if it's a new screenshot, we wait for onload
-    // otherwise, we don't have to wait
-    if (this.state.newScreenshot) {
-      const screenshot = this.state.screenshot;
-      screenshot.onload = () => {
-        ctx.drawImage(screenshot, screenshotWidthStart, screenshotHeightStart, screenshotWidth, screenshotHeight);
-        this.addCanvasDevice(ctx);
-        if (this.state.newScreenshot) {
-          this.setState({
-            newScreenshot: false
-          })
-        }
+      const reader = new FileReader();
+      const screenshot = new Image();
+
+      reader.onload = function(e) {
+        screenshot.src = e.target.result;
       }
-    } else {
-      ctx.drawImage(this.state.screenshot, screenshotWidthStart, screenshotHeightStart, screenshotWidth, screenshotHeight);
-      this.addCanvasDevice(ctx);
-    }
+
+      reader.readAsDataURL(this.state.screenshot);
+      screenshot.onload = () => {
+        ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
+        this.addCanvasDevice(ctx);
+      }
   }
 
   addCanvasDevice = (ctx) => {
-    if (isDevice) {
-      const device = new Image();
-      device.src = require(`../mockups/${this.props.device}.png`);
-      device.onload = () => {
-        ctx.drawImage(device, deviceWidthStart, deviceHeightStart, allDevices[`datas${this.props.index}`].deviceWidth, allDevices[`datas${this.props.index}`].deviceHeight);
+    if (this.state.isDevice) {
+      const deviceImg = new Image();
+      deviceImg.src = require(`../mockups/${this.props.device}.png`);
+      deviceImg.onload = () => {
+        ctx.drawImage(deviceImg, this.state.deviceWidthStart, this.state.deviceHeightStart, this.state.deviceWidth, this.state.deviceHeight);
       }
     }
   }
-
 
   sendCanvasDatasToProject = () => {
     const infos = {
       metadatas: {
         index: this.props.index,
-        canvasId: this.props.canva.id
+        canvasId: this.props.canva.id ? this.props.canva.id : "new"
       },
       datas: {
         template: this.state.template,
@@ -651,8 +768,10 @@ methods to draw and write on the canvas
         subtitleContent: this.state.subtitleContent,
         subtitleSize: this.state.subtitleSize,
         subtitleFont: this.state.subtitleFont,
-        subtitleColor: this.state.subtitleColor
-      }
+        subtitleColor: this.state.subtitleColor,
+        screenshotURL: this.state.screenshotURL
+      },
+      screenshot: this.state.screenshot
     };
     this.props.getCanvasDatas(infos);
   }
@@ -718,7 +837,7 @@ the finale method where everything is played
       ctx.translate(translateX, translateY);
     }
 
-    // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is draw)
+    // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is drawn)
     // otherwise it's played here
     if (this.state.screenshotPresent === true) {
       this.addCanvasScreenshot(ctx);
@@ -755,7 +874,6 @@ methods to display the dropdown menus
     ));
     return templates;
   }
-
 
 
   render() {
@@ -796,6 +914,7 @@ methods to display the dropdown menus
             id={`title-content-${this.props.index}`}
             name="titleContent"
             placeholder="Type your title here"
+            value={this.state.titleContent}
             onChange={e => this.handleChange(e)}
           />
 
@@ -831,6 +950,7 @@ methods to display the dropdown menus
             id={`subtitle-content-${this.props.index}`}
             name="subtitleContent"
             placeholder="Type your subtitle here"
+            value={this.state.subtitleContent}
             onChange={e => this.handleChange(e)}
           />
 
@@ -861,6 +981,11 @@ methods to display the dropdown menus
           </select>
 
         </Settings>
+          { this.props.canva.id ?
+            <DeleteButton onClick={() => this.props.deleteCanva(this.props.canva.id, this.props.canva.screenshotURL)}>
+              <p>Delete this mockup</p>
+            </DeleteButton>
+          : null}
         <DlContainer id={`a-${this.props.index}`} className="button" download={`${this.props.device}_${this.props.index + 1}.jpg`} onClick={ () => {this.downloadIt(this.props.index)} }>
           <button className="dl-button">Download</button>
         </DlContainer>

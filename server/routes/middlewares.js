@@ -38,6 +38,7 @@ function authenticateUser(req, res, next) {
       }
     // If the user is not found:
     } else {
+      console.log("user not found");
       err = new Error("User Not Found!");
       err.status = 401;
       next(err);

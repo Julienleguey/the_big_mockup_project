@@ -90,16 +90,14 @@ class ProjectList extends React.Component {
   }
 
   displayProjects = () => {
-    console.log("start to display the projects");
     const projs = this.state.projects;
     const truc = projs.map( (proj, index) => {
       console.log(proj);
       return (
-        <ProjectCard key={index} name={proj.name} id={proj.id} />
+        <ProjectCard key={index} name={proj.name} userId={this.props.loggedUserId} projectId={proj.id} />
       )
     });
     return truc;
-    console.log("finished to display the projects");
   }
 
   // displayProjects = () => {

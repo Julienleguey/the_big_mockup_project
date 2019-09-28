@@ -43,7 +43,8 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'screenshots'))); // hm, what ?
+// app.use(express.static('screenshots'));
 
 
 // TODO setup your api routes here

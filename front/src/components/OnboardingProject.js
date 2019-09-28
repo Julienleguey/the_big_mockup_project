@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { Redirect, Route } from 'react-router-dom';
 import { Consumer } from './Context';
 import axios from 'axios';
+import Templates from '../params/templates.js';
 
 const Wrapper = styled.div`
   display: flex;
@@ -17,16 +18,25 @@ const DoubleWrapper = styled.div`
 const Os = styled.div`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
+  width: 80%;
+  margin-bottom: 24px;
 `;
 
 const Device = styled.div`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
+  width: 80%;
+  margin-bottom: 24px;
 `;
 
 const Template = styled.div`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
+  width: 80%;
+  margin-bottom: 24px;
 `;
 
 const Name = styled.div`
@@ -44,7 +54,7 @@ const Choice = styled.div`
     cursor: pointer;
   }
 
-  &.focusOS, &.focusDevice, &.focusTemplate {
+  &.active {
     background-color: darkgrey;
   }
 `;
@@ -61,7 +71,34 @@ const Input = styled.input`
 
 const Button = styled.button`
   margin-top: 16px;
+  height: 100px;
+  margin-bottom: 80px;
 `;
+
+const os = ["ios", "android"];
+const devices = [
+  {value: "iphone_8_plus",
+  name: "iPhone 8 plus"},
+  {value: "iphone_xr",
+  name: "iPhone XR"},
+  {value: "iphone_x",
+  name: "iPhone X Black"},
+  {value: "ipad_2_portrait",
+  name: "iPad 2 portrait"},
+  {value: "ipad_3_portrait",
+  name: "iPad 3 portrait"},
+  {value: "pixel_3a_XL",
+  name: "Pixel 3a XL"},
+  {value: "nexus_7",
+  name: "Nexus 7"},
+  {value: "nexus_9",
+  name: "Nexus 9"},
+  {value: "nexus_10",
+  name: "Nexus 10"},
+  {value: "android_10_anonym",
+  name: 'Android 10" anonym'}
+];
+const templates = Templates;
 
 class Onboarding extends Component {
 
@@ -75,47 +112,22 @@ class Onboarding extends Component {
     };
   }
 
-  focusOS = (e, os) => {
-    if (document.querySelector(".focusOS")) {
-      document.querySelector(".focusOS").classList.remove("focusOS");
-    }
-    e.target.classList.add("focusOS");
-    this.setState({
-      os: os
-    });
-  }
-
-  focusDevice = (e, device) => {
-    if (document.querySelector(".focusDevice")) {
-      document.querySelector(".focusDevice").classList.remove("focusDevice");
-    }
-    e.target.classList.add("focusDevice");
-    this.setState({
-      device: device
-    });
-  }
-
-  focusTemplate = (e, template) => {
-    if (document.querySelector(".focusTemplate")) {
-      document.querySelector(".focusTemplate").classList.remove("focusTemplate");
-    }
-    e.target.classList.add("focusTemplate");
-    this.setState({
-      template: template
-    });
-  }
-
-  handleChange = (e) => {
+  handleInput = (e) => {
     this.setState({ [e.target.name]: e.target.value});
   }
 
+  handleChange = (key, value) => {
+    this.setState({ [key]: value })
+  };
+
   handleSubmit = (e, emailAddress, password) => {
     e.preventDefault();
-    console.log(this.state);
 
     axios.post(`http://localhost:5000/projects/new`, {
       name: this.state.name,
-      os: this.state.os
+      os: this.state.os,
+      device: this.state.device,
+      template: this.state.template
     }, {
       auth: {
         username: emailAddress,
@@ -124,7 +136,7 @@ class Onboarding extends Component {
     }).then( res => {
       console.log(res);
       console.log(res.data.id);
-      // <Route path={`/projects/${res.data.id}`} render={ () => <Project /> } />
+      window.location.replace("/projects");
     }).catch(err => {
       if (err.response.status === 500 ) {
         this.props.history.push("/error");
@@ -134,43 +146,54 @@ class Onboarding extends Component {
     })
   }
 
+
+
+  displayOs = () => {
+    const allOs = os.map( (wassaname, index) => (
+      <Choice key={index} className={this.state.os === wassaname ? "active" : null} onClick={() => this.handleChange("os", wassaname)}>
+        {wassaname}
+      </Choice>
+    ));
+    return allOs;
+  }
+
+  displayDevices = () => {
+    const allDevices = devices.map( (device, index) => (
+      <Choice key={index} className={this.state.device === device.value ? "active" : null} onClick={() => this.handleChange("device", device.value)}>
+        {device.name}
+      </Choice>
+    ));
+    return allDevices;
+  }
+
+  displayTemplates = () => {
+    const allTemplates = templates.map( (template, index) => (
+      <Choice key={index} className={this.state.template === template.index ? "active" : null} onClick={() => this.handleChange("template", template.index)}>
+        {template.name}
+      </Choice>
+    ));
+    return allTemplates;
+  }
+
   render() {
     return(
       <Wrapper>
         <DoubleWrapper>
           <Os>
-            <Choice onClick={e => this.focusOS(e, "ios")}>
-              iOS
-            </Choice>
-            <Choice onClick={e => this.focusOS(e, "android")}>
-              Android
-            </Choice>
+            {this.displayOs()}
           </Os>
           <Device>
-            <Choice onClick={e => this.focusDevice(e, "iphone_xr")}>
-              iPhone XR
-            </Choice>
-            <Choice onClick={e => this.focusDevice(e, "iphone_8_plus")}>
-              iPhone 8 Plus
-            </Choice>
+            {this.displayDevices()}
           </Device>
           <Template>
-            <Choice onClick={e => this.focusTemplate(e, "top")}>
-              Top
-            </Choice>
-            <Choice onClick={e => this.focusTemplate(e, "middle")}>
-              Middle
-            </Choice>
-            <Choice onClick={e => this.focusTemplate(e, "bottom")}>
-              Bottom
-            </Choice>
+          {this.displayTemplates()}
           </Template>
           <Name>
             <Consumer>
               { context => {
                 return(
                   <Form onSubmit={e => this.handleSubmit(e, context.emailAddress, context.password)}>
-                    <Input id="name" type="text" name="name" value={this.state.name} onChange={this.handleChange}/>
+                    <Input id="name" type="text" name="name" value={this.state.name} onChange={this.handleInput}/>
                     <Button className="button" type="submit">Create project</Button>
                   </Form>
                 )}}
