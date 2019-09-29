@@ -67,16 +67,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// const storageSingle = multer.diskStorage({
-//   destination: function(req, file, cb) {
-//     cb(null, `./screenshots/test_folder`);
-//   },
-//   filename: function(req, file, cb) {
-//     cb(null, `${file.originalname}`)
-//   }
-// })
-
-
 const fileFilter = (req, file, cb) => {
   // reject files that are not jpeg or png
   if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
@@ -88,7 +78,6 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
-  // storage: storageSingle,
   limits: {
     fileSize: 1024 * 1024 * 5
   },
@@ -97,29 +86,23 @@ const upload = multer({
 
 
 
-// add a screenshot to the server for tests purposes
-router.post('/test', authenticateUser, createTempFolder, upload.array('screenshots'), function(req, res, next){
-  console.log("PLAYING THE POST METHOD ON THE SERVER");
+// saving the project, the canvas and the screenshots
+router.post('/save', authenticateUser, createTempFolder, upload.array('screenshots'), function(req, res, next){
   const projectDatas = JSON.parse(req.body.project);
   const canvas = JSON.parse(req.body.canvas);
   const metas = JSON.parse(req.body.metas);
 
-  console.log(1);
   const originPath = `${__dirname}/../screenshots/temp_${req.currentUser.id}/`;
   const origin = path.normalize(originPath);
 
-  // const directoryPath = `${__dirname}/../screenshots/${req.body.userId}/${req.body.projectId}/`;
   const directoryPath = `${__dirname}/../screenshots/${metas.userId}/${metas.projectId}/`;
   const directory = path.normalize(directoryPath);
 
-  console.log(2);
   req.files.forEach( (file, index) => {
-    console.log(3);
     let filesErr = 0;
 
     fs.rename(origin + file.originalname, directory + file.originalname, function(err) {
       if (err) {
-        // return console.error(err);
         filesErr += 1;
       }
     });
@@ -127,26 +110,17 @@ router.post('/test', authenticateUser, createTempFolder, upload.array('screensho
     if (index === req.files.length - 1) {
       if (filesErr === 0) {
         destroyTempFolder(req, res);
-        // res.status(200).send("ok");
-        updateProject(req, res, metas, projectDatas, canvas);
       } else {
         res.status(500).send("An error occured while uploading the screenshots to the server.")
       }
     }
   });
-
-
-
+  updateProject(req, res, metas, projectDatas, canvas);
 })
 
 // methods to do stuff
 function updateProject(req, res, metas, projectDatas, canvas) {
-  console.log("the updateProject method is played");
-  console.log(projectDatas);
-  // update of the project infos
   const id = metas.projectId;
-  // const id = 30;
-
   let projectRes = false;
   let canvasRes = [];
 
@@ -160,8 +134,6 @@ function updateProject(req, res, metas, projectDatas, canvas) {
   }).then( () => {
     projectRes = true;
   }).then( () => {
-    // res.status(200).send("Your changes have been saved!");
-    console.log("VICTORYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY PROJECT");
     updateCanvas(req, res, metas, projectDatas, canvas);
   }).catch(function(err){
     res.status(500).send("Something went wrong while updating the project. Please try again!");
@@ -183,7 +155,6 @@ function updateCanvas (req, res, metas, projectDatas, canvas) {
       res.status(200).send("Your changes have been saved!");
     }
   }
-
 }
 
 function updateOneCanva (canvaDatas, projectId) {
@@ -212,17 +183,6 @@ function updateOneCanva (canvaDatas, projectId) {
     })
   }
 }
-
-
-// add a screenshot to the server for tests purposes
-router.post('/test_single', authenticateUser, upload.single('screenshot'), function(req, res){
-  try {
-      res.status(200).send("ok");
-    } catch(err) {
-      res.status(500).send("An error occured while uploading the screenshots to the server.")
-    }
-})
-
 
 /*************
 Project routes
@@ -272,6 +232,7 @@ router.get('/list/:id', function(req, res, next) {
 
 
 router.get('/project/:id', authenticateUser, function(req, res, next) {
+  console.log("GETTING THE PROJECT AND ITS CANVAS");
   Project.findOne({
     where: { id: req.params.id },
     include: [
@@ -315,58 +276,143 @@ router.post('/new', authenticateUser, function(req, res, next) {
 });
 
 
-// update a project
-router.put('/project/:id', authenticateUser, projectOwner, function(req, res, next) {
+// update project name
+router.put('/rename/:id', authenticateUser, projectOwner, function(req, res, next) {
   const id = req.params.id;
-  // const id = 30;
-
-  let projectRes = false;
-  let canvasRes = [];
+  const newName = {
+    name: req.body.name
+  }
 
   Project.findOne({ where: { id: id } }).then( (project) => {
-    if (project) {
-      project.update(req.body.project);
-    } else {
-      // project not found
-      res.status(404).send("Something went wrong! We couldn't find your project! Please, try again!");
-    }
-  }).then( () => {
-    projectRes = true;
-  }).then( () => {
-    const canvasArr = [];
-
-    for (let [key, value] of Object.entries(req.body.canvas)) {
-      canvasArr.push(value);
-    }
-
-
-    // mettre un if (canvaFull) ici pour pas lancer l'itération s'il n'y a pas de canvas ?
-    canvasArr.forEach((canvaFull, index) => {
-      Canva.findOne({ where: {id: canvaFull.metadatas.canvasId} }).then ( (canva) => {
-        if (canva) {
-          canva.update(canvaFull.datas);
-        } else {
-          // project not found
-          res.status(404).send(`It seems the mockup ${canvaFull.metadatas.index + 1} doesn't exist.`);
-        }
-      }).then( () => {
-        // res.status(200).send("canva updaté");
-        canvasRes.push({[`${canvaFull.metadatas.index}`]: true});
-        if (index === canvasArr.length - 1) {
-          // res.status(200).send({projectRes, canvasRes});
-          res.status(200).send("Your changes have been saved!");
-        }
-      }).catch( err => {
-        res.status(500).send("Something went wrong while updating the project. Please try again!");
-      })
+      if (project) {
+        project.update(newName);
+        // throw new Error('BROKEN'); // usefull to raise an error!
+      } else {
+        // project not found
+        res.status(404).send("Something went wrong! We couldn't find your project! Please refresh the page and try again!");
+      }
+    }).then( () => {
+      res.status(200).send("The project's name was successfully updated!");
+    }).catch( () => {
+      res.status(500).send("Something went wrong! Please refresh the page and try again!");
     })
+});
+
+
+//204 - Delete a project
+router.delete('/delete/:id', authenticateUser, projectOwner, function(req, res, next){
+  const id = req.params.id;
+
+  console.log("*************************");
+  console.log("*************************");
+  console.log("*************************");
+  console.log("*************************");
+  console.log(req.params.id, req.query.userId);
+  console.log("*************************");
+  console.log("*************************");
+  console.log("*************************");
+  console.log("*************************");
+
+  Project.destroy({
+  // Project.findOne({
+    where: {id: id}
+  }).then( () => {
+    // destroy the folder of the project and its content
+
+    // 1. find the directory
+    // 2. list all the content
+    // 3. destroy the content (foreach loop probably)
+    // 4. destroy the empty folder
+    // 5. enjoy
+
+    const directoryPath = `${__dirname}/../screenshots/${req.query.userId}/${req.params.id}`;
+    const directory = path.normalize(directoryPath);
+
+    fs.readdir(directory, function(err, files) {
+      if (files) {
+        files.forEach(file => {
+          const directoryPathFile = `${directoryPath}/${file}`;
+          const directoryFile = path.normalize(directoryPathFile);
+          fs.unlinkSync(directoryFile);
+        });
+      }
+    });
+
+
 
   }).then( () => {
-    res.status(200).send("Your changes have been saved!");
-  }).catch(function(err){
-    res.status(500).send("Something went wrong while updating the project. Please try again!");
-  });
+    const directoryPath = `${__dirname}/../screenshots/${req.query.userId}/${req.params.id}`;
+    const directory = path.normalize(directoryPath);
+
+    setTimeout( () => {
+      fs.rmdir(directory, (err) => {
+        // if (err) throw err;
+        // bah non, on s'en fout si y'a pas de fichier à virer
+      });
+    }, 1000);
+
+  }).then( () => {
+    res.status(204).send();
+  }).catch( () => {
+    res.sendStatus(500);
+  })
 });
+
+
+// commented because deprecated(?)
+
+// // update a project
+// router.put('/project/:id', authenticateUser, projectOwner, function(req, res, next) {
+//   const id = req.params.id;
+//   // const id = 30;
+//
+//   let projectRes = false;
+//   let canvasRes = [];
+//
+//   Project.findOne({ where: { id: id } }).then( (project) => {
+//     if (project) {
+//       project.update(req.body.project);
+//     } else {
+//       // project not found
+//       res.status(404).send("Something went wrong! We couldn't find your project! Please, try again!");
+//     }
+//   }).then( () => {
+//     projectRes = true;
+//   }).then( () => {
+//     const canvasArr = [];
+//
+//     for (let [key, value] of Object.entries(req.body.canvas)) {
+//       canvasArr.push(value);
+//     }
+//
+//
+//     // mettre un if (canvaFull) ici pour pas lancer l'itération s'il n'y a pas de canvas ?
+//     canvasArr.forEach((canvaFull, index) => {
+//       Canva.findOne({ where: {id: canvaFull.metadatas.canvasId} }).then ( (canva) => {
+//         if (canva) {
+//           canva.update(canvaFull.datas);
+//         } else {
+//           // project not found
+//           res.status(404).send(`It seems the mockup ${canvaFull.metadatas.index + 1} doesn't exist.`);
+//         }
+//       }).then( () => {
+//         // res.status(200).send("canva updaté");
+//         canvasRes.push({[`${canvaFull.metadatas.index}`]: true});
+//         if (index === canvasArr.length - 1) {
+//           // res.status(200).send({projectRes, canvasRes});
+//           res.status(200).send("Your changes have been saved!");
+//         }
+//       }).catch( err => {
+//         res.status(500).send("Something went wrong while updating the project. Please try again!");
+//       })
+//     })
+//
+//   }).then( () => {
+//     res.status(200).send("Your changes have been saved!");
+//   }).catch(function(err){
+//     res.status(500).send("Something went wrong while updating the project. Please try again!");
+//   });
+// });
 
 
 

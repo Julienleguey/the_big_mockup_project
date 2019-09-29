@@ -59,10 +59,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       defaultValue: ""
     },
-  });
+  }, {});
 
   Canva.associate = (models) => {
-    models.Canva.belongsTo(models.Project);
+    Canva.belongsTo(models.Project, {
+      foreignKey: 'ProjectId',
+      onDelete: 'CASCADE'
+    });
   };
 
   return Canva;

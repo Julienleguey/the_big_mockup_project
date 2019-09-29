@@ -73,9 +73,6 @@ const NewCanva = styled.div`
   border-radius: 50%;
 `;
 
-
-const canvasDatas = {};
-
 class Project extends Component {
 
   constructor() {
@@ -93,7 +90,7 @@ class Project extends Component {
     };
   }
 
-  componentWillMount = () => {
+  componentDidMount = () => {
     this.getProject();
   }
 
@@ -108,23 +105,78 @@ class Project extends Component {
         username: emailAddress,
         password: password
       }}).then( res => {
-        console.log(res.data);
-        this.setState({
-          userId: this.props.location.state.userId,
-          projectId: this.props.location.state.projectId,
-          name: res.data.name,
-          os: res.data.os,
-          device: res.data.device,
-          canvas: res.data.Canvas
+        const canvas = res.data.Canvas;
+        const images = [];
+        canvas.forEach( canva => {
+          images.push(this.loadSavedScreenshot(canva.screenshotURL));
         })
-      }).then( () => {
-        // console.log(this.state.name);
-        // console.log(this.state.os);
-        // console.log(this.state.device);
-        // console.log(this.state.canvas);
+
+        Promise.all(images).then( values => {
+          canvas.forEach( (canva, index) => {
+            canva.screenshot = values[index];
+          })
+        }).then( () => {
+          this.setState({
+            userId: this.props.location.state.userId,
+            projectId: this.props.location.state.projectId,
+            name: res.data.name,
+            os: res.data.os,
+            device: res.data.device,
+            canvas: canvas
+          })
+        })
       }).catch(err => {
-        console.error(err);
+        this.setFlash("error", "An error occured. Please refresh the page or try to go to the Projects page.");
       });
+  }
+
+  loadSavedScreenshot = (screenshotURL) => {
+    return new Promise((resolve, reject) => {
+      if (screenshotURL !== "") {
+        axios.get(
+          `http://localhost:5000${screenshotURL}`,
+          { responseType: 'arraybuffer' },
+        )
+        .then(response => {
+          const base64 = btoa(
+            new Uint8Array(response.data).reduce(
+              (data, byte) => data + String.fromCharCode(byte),
+              '',
+            ),
+          );
+          const truc = `data:image/png;base64,${base64}`;
+          const trucBlob = this.base64ImageToBlob(truc);
+          const trucFile = new File([trucBlob], "machin.png");
+          resolve(trucFile);
+         });
+      } else {
+        resolve("");
+      }
+    });
+  }
+
+  base64ImageToBlob = (str) => {
+    // extract content type and base64 payload from original string
+    var pos = str.indexOf(';base64,');
+    var type = str.substring(5, pos);
+    var b64 = str.substr(pos + 8);
+
+    // decode base64
+    var imageContent = atob(b64);
+
+    // create an ArrayBuffer and a view (as unsigned 8-bit)
+    var buffer = new ArrayBuffer(imageContent.length);
+    var view = new Uint8Array(buffer);
+
+    // fill the view, using the decoded base64
+    for(var n = 0; n < imageContent.length; n++) {
+      view[n] = imageContent.charCodeAt(n);
+    }
+
+    // convert ArrayBuffer to Blob
+    var blob = new Blob([buffer], { type: type });
+
+    return blob;
   }
 
   reloadProject = () => {
@@ -133,7 +185,7 @@ class Project extends Component {
 
   displayCanvas = () => {
     const canvas = this.state.canvas.map((canva, index) => {
-      canvasDatas[`canva_${index}`] = {};
+      // canvasDatas[`canva_${index}`] = {};
       return (
         <Canvas
           key={index}
@@ -141,9 +193,9 @@ class Project extends Component {
           canva={canva}
           size={DeviceSize[this.state.device]}
           device={this.state.device}
-          getCanvasDatas={this.getCanvasDatas}
           userId={this.state.userId}
           deleteCanva={this.deleteCanva}
+          handleChangeCanvas={this.handleChangeCanvas}
         />
       )
     });
@@ -154,6 +206,14 @@ class Project extends Component {
     this.setState({ [e.target.name]: e.target.value});
   }
 
+  handleChangeCanvas = (canvaId, key, value) => {
+    this.setState(prevState => ({
+      canvas: prevState.canvas.map(
+        el => el.id === canvaId? { ...el, [key]: value }: el
+      )
+    }))
+  }
+
   setFlash = (type, msg) => {
     this.setState({
       flash: true,
@@ -162,22 +222,39 @@ class Project extends Component {
     })
   }
 
-  saveWork = () => {
-    this.saveProject();
-  }
-
-  getCanvasDatas = (infos) => {
-    canvasDatas[`canva_${infos.metadatas.index}`] = infos;
-    console.log(canvasDatas);
-  }
-
   closeFlash = () => {
     this.setState({
       flash: false
     });
   }
 
-  saveScreenshotTest = () => {
+  saveProject = () => {
+    const canvasDatas = [];
+    this.state.canvas.forEach( (canva, index) => {
+      const canvaDatasFormatted = {
+        metadatas: {
+          index: index,
+          canvasId: canva.id
+        },
+        datas: {
+          template: canva.template,
+          backgroundColor: canva.backgroundColor,
+          titleContent: canva.titleContent,
+          titleSize: canva.titleSize,
+          titleFont: canva.titleFont,
+          titleColor: canva.titleColor,
+          subtitleContent: canva.subtitleContent,
+          subtitleSize: canva.subtitleSize,
+          subtitleFont: canva.subtitleFont,
+          subtitleColor: canva.subtitleColor,
+          screenshotURL: canva.screenshotURL
+        },
+        screenshot: canva.screenshot
+      };
+      canvasDatas.push(canvaDatasFormatted);
+    });
+
+
     const emailAddress = localStorage.getItem('emailAddress');
     const password = localStorage.getItem('password');
 
@@ -205,12 +282,11 @@ class Project extends Component {
       projectId: this.state.projectId
     }
 
-    // data.append('project', new Blob([projbla],{type:'application/json'}));
     data.append("project", JSON.stringify(projbla));
     data.append('canvas', JSON.stringify(canvasDatas));
     data.append('metas', JSON.stringify(metas));
 
-    axios.post(`http://localhost:5000/projects/test`, data,
+    axios.post(`http://localhost:5000/projects/save`, data,
       {
         auth: {
         username: emailAddress,
@@ -227,12 +303,7 @@ class Project extends Component {
         });
         this.reloadProject();
       }).catch( err => {
-        console.log(err);
-        // this.setState({
-        //   flash: true,
-        //   type: "error",
-        //   message: err.response.data
-        // })
+        this.setFlash("error", "An error occured while saving the project. Please try again.");
       });
   }
 
@@ -264,7 +335,6 @@ class Project extends Component {
     })
 
   }
-
 
   deleteCanva = (canvaId, screenshotUrl) => {
     const data = {
@@ -298,8 +368,6 @@ class Project extends Component {
         })
 
         this.setFlash("success", "The mockup was successfully deleted!");
-        // this.reloadProject();
-        // on ne reload surtout pas ! On le vire du state !
       }).catch( err => {
         console.error(err);
         // this.setState({
@@ -345,8 +413,7 @@ class Project extends Component {
               </select>
             </Filter>
           </FiltersContainer>
-          {/* <SaveButton onClick={ () => this.saveWork()}>SAVE</SaveButton> */}
-          <SaveButton onClick={ () => this.saveScreenshotTest()}>SAVE SCREENSHOTS</SaveButton>
+          <SaveButton onClick={ () => this.saveProject()}>SAVE</SaveButton>
           <Container>
             {this.displayCanvas()}
             <NewCanva onClick={() => this.addNewCanva()}>

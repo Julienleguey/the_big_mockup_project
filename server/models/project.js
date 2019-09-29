@@ -18,8 +18,11 @@ module.exports = (sequelize, DataTypes) => {
   // };
 
   Project.associate = (models) => {
-    models.Project.belongsTo(models.User);
-    models.Project.hasMany(models.Canva);
+    Project.belongsTo(models.User);
+    Project.hasMany(models.Canva, {
+      foreignKey: 'ProjectId',
+      onDelete: 'CASCADE'
+    });
   };
 
   return Project;

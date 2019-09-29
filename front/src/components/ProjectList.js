@@ -4,7 +4,10 @@ import axios from 'axios';
 import styled from 'styled-components';
 
 // import components
+import Flash from './Flash';
 import ProjectCard from './ProjectCard';
+import RenameProjectModal from './RenameProjectModal';
+import DeleteProjectModal from './DeleteProjectModal';
 
 // import images
 import plus from '../images/add.svg';
@@ -53,72 +56,76 @@ class ProjectList extends React.Component {
   constructor() {
     super();
     this.state = {
-      projects: [0, 1]
+      flash: false,
+      type: "standard",
+      message: "",
+      projects: [],
+      modal: "",
+      projectModal: "",
+      nameModal: ""
     }
   }
 
-
-
   componentWillMount = () => {
-    console.log("Projects mount!");
+    this.loadProjects();
+  }
 
+  loadProjects = () => {
     const userId = this.props.loggedUserId;
 
-    console.log(userId);
-
     axios.get(`http://localhost:5000/projects/list/${userId}`).then( response => {
-        console.log(response);
         this.setState({
           projects: response.data
         })
-      }).then( () => {
-        // this.displayProjects();
-        console.log("meh");
       }).catch(error => {
-
         console.error(error);
-        // if (error.response.status === 500) {
-        //   this.props.history.push("/error");
-        // } else {
-        //   // used by UserSignIn to display the error messages (incorrect email or password)
-        //   this.setState({
-        //     errorMessageSignIn: error.response.data.message,
-        //     isErrorSignIn: true
-        //   });
-        // }
       });
+  }
+
+  setFlash = (type, msg) => {
+    console.log("seeting the flash");
+    this.setState({
+      flash: true,
+      type: type,
+      message: msg
+    })
+  }
+
+  closeFlash = () => {
+    this.setState({
+      flash: false
+    });
   }
 
   displayProjects = () => {
     const projs = this.state.projects;
     const truc = projs.map( (proj, index) => {
-      console.log(proj);
       return (
-        <ProjectCard key={index} name={proj.name} userId={this.props.loggedUserId} projectId={proj.id} />
+        <ProjectCard key={index} name={proj.name} userId={this.props.loggedUserId} projectId={proj.id} openModal={this.openModal}/>
       )
     });
     return truc;
   }
 
-  // displayProjects = () => {
-  //
-  //   const list = document.querySelector('#list');
-  //
-  //   const projs = this.state.projects;
-  //   const truc = projs.map( proj => {
-  //     return (
-  //       <ProjectsList name={proj.name}/>
-  //     )
-  //   });
-  //   // return truc;
-  //   list.appendChild(truc);
-  // }
+  openModal = (modalName, projectId, projectName) => {
+    this.setState({
+      modal: modalName,
+      projectIdModal: projectId,
+      projectNameModal: projectName
+    })
+  }
+
+  closeModal = () => {
+    this.setState({
+      modal: ""
+    })
+  }
 
   render() {
-    console.log(this.state.projects);
 
     return (
       <Wrapper>
+        <Flash flash={this.state.flash} type={this.state.type} message={this.state.message} closeFlash={this.closeFlash}/>
         <h1>My Projects</h1>
         <List id="list">
           <NewProject link href="/onboarding-project">
@@ -127,6 +134,24 @@ class ProjectList extends React.Component {
           </NewProject>
           {this.displayProjects()}
         </List>
+
+        <RenameProjectModal
+          isOpen={this.state.modal === "renameProject" ? true : false}
+          setFlash={this.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          projectName={this.state.projectNameModal}
+        />
+
+        <DeleteProjectModal
+          isOpen={this.state.modal === "deleteProject" ? true : false}
+          setFlash={this.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          userId={this.props.loggedUserId}
+        />
       </Wrapper>
     );
   }

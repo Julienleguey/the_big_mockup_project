@@ -72,9 +72,12 @@ router.delete('/delete/:id', authenticateUser, function(req, res, next){
     const directory = path.normalize(directoryPath);
 
     if (req.query.screenshotUrl !== "") {
+      // si on ajoute un screenshot MAIS qu'on ne sauvegarde pas, le test passe, mais on n'a pas vraiment de screenshot à supprimer et ça crée une erreur
       console.log(req.query.screenshotUrl);
       fs.unlink(directory, (err) => {
-        if (err) throw err;
+        if (err) console.log("no worries!");
+        // I don't want to throw an error if the file I want to delete doesn't exist
+        // If it doesn't exist and I wanted to delete it, what's the problem? None! Exactly! So, no need to throw an error.
       });
     }
 

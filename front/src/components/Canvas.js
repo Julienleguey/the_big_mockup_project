@@ -106,7 +106,6 @@ const resizeNoDevice = 0.8;
 let rotRadians = 0;
 
 let device = "";
-let number = "";
 let caption = "";
 let isRotate = "";
 let isDevice = false;
@@ -175,22 +174,6 @@ class Canvas extends Component {
   constructor() {
     super();
     this.state = {
-      device: "",
-      template: "",
-      number: "",
-      newScreenshot: false,
-      screenshotPresent: false,
-      screenshot: "",
-      screenshotURL: "",
-      backgroundColor: "",
-      titleContent: "",
-      titleSize: "",
-      titleColor: "",
-      titleFont: "",
-      subtitleContent: "",
-      subtitleSize: "",
-      subtitleColor: "",
-      subtitleFont: "",
       isDevice: false,
       deviceWidthStart: 0,
       deviceHeightStart: 0,
@@ -204,107 +187,17 @@ class Canvas extends Component {
   }
 
 /****************
-lifecyle events
+lifecycle events
 ****************/
 
-  componentWillMount = () => {
-    // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
-    this.setState({
-      template: this.props.canva.template,
-      number: this.props.index + 1,
-      backgroundColor: this.props.canva.backgroundColor,
-      titleContent: this.props.canva.titleContent,
-      titleSize: this.props.canva.titleSize,
-      titleFont: this.props.canva.titleFont,
-      titleColor: this.props.canva.titleColor,
-      subtitleContent: this.props.canva.subtitleContent,
-      subtitleSize: this.props.canva.subtitleSize,
-      subtitleFont: this.props.canva.subtitleFont,
-      subtitleColor: this.props.canva.subtitleColor,
-      screenshotURL: this.props.canva.screenshotURL
-    });
-  }
-
   componentDidMount = () => {
-    // const screenshot = new Image();
-
-    // ici on essaye de récupérer l'image du serveur
-    // c'est un gros foutoir
-    // 1. on appelle l'url de l'image
-    // 2. on en extraie une string (base64)
-    // 3. on en fait un Blob
-    // 4. on peut faire un file du Blob
-    // 5. on peut mettre le file dans le state
-
-    // A REFACTORISER
-    // il faudrait renommer les screenshots en fonction de l'index du canva avant de les uploader pour éviter les doublons
-        // (ou se baser sur la méthode pour renommer les fichiers avant de les dl)
-    // dans le get, il faudrait récupérer le bon name
-    // on a toujours le problème de dimension du screenshot qui change après la sauvegarde
-
-
-    const screenshot = new Image();
-
-    if (this.props.canva.screenshotURL !== null) {
-      axios.get(
-        `http://localhost:5000${this.state.screenshotURL}`,
-        { responseType: 'arraybuffer' },
-      )
-      .then(response => {
-        const base64 = btoa(
-          new Uint8Array(response.data).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            '',
-          ),
-        );
-
-        const truc = `data:image/png;base64,${base64}`;
-        const trucBlob = this.base64ImageToBlob(truc);
-
-        const trucFile = new File([trucBlob], "machin.png");
-
-        // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
-          this.setState({
-            screenshotPresent: true,
-            screenshot: trucFile
-          });
-
-      });
-    }
-
     this.createCanvas();
   }
 
-  componentDidUpdate = () => {
-    this.createCanvas();
-  }
-
-  handleChange = (e) => {
-    this.setState({ [e.target.name]: e.target.value});
-  }
-
-  base64ImageToBlob = (str) => {
-    // extract content type and base64 payload from original string
-    var pos = str.indexOf(';base64,');
-    var type = str.substring(5, pos);
-    var b64 = str.substr(pos + 8);
-
-    // decode base64
-    var imageContent = atob(b64);
-
-    // create an ArrayBuffer and a view (as unsigned 8-bit)
-    var buffer = new ArrayBuffer(imageContent.length);
-    var view = new Uint8Array(buffer);
-
-    // fill the view, using the decoded base64
-    for(var n = 0; n < imageContent.length; n++) {
-      view[n] = imageContent.charCodeAt(n);
-    }
-
-    // convert ArrayBuffer to Blob
-    var blob = new Blob([buffer], { type: type });
-
-    return blob;
+  componentDidUpdate = (prevProps) => {
+    // if (prevProps.canva !== this.props.canva) {
+      this.createCanvas();
+    // }
   }
 
   addDeviceCoordinatesToState = () => {
@@ -336,7 +229,6 @@ lifecyle events
       });
     }
   }
-
 
 
 /*****************************
@@ -381,15 +273,14 @@ splittingContent = (ctx, content, fontSize) => {
 /*******************************
 methods to calculate meta-datas
 *******************************/
-  // 1. définir le contexte : device, number, caption, rotate
+  // 1. définir le contexte : device, caption, rotate
   getContext = () => {
     device = this.props.device;
-    number = this.props.index + 1;
-    caption = Templates[this.state.template].caption;
-    isDevice = Templates[this.state.template].device;
-    isRotate = Templates[this.state.template].rotate;
-    rotRadians = (Math.PI / 180) * Templates[this.state.template].rotation;
-    isFull = Templates[this.state.template].full;
+    caption = Templates[this.props.canva.template].caption;
+    isDevice = Templates[this.props.canva.template].device;
+    isRotate = Templates[this.props.canva.template].rotate;
+    rotRadians = (Math.PI / 180) * Templates[this.props.canva.template].rotation;
+    isFull = Templates[this.props.canva.template].full;
     deviceWidth = DeviceSize[device].width;
     deviceHeight = DeviceSize[device].height;
 
@@ -414,8 +305,8 @@ methods to calculate meta-datas
 
   // 4. définir le texte (splitting content etc)
   defineText = (ctx) => {
-    titleSplited = this.splittingContent(ctx, this.state.titleContent, TextSizes[this.state.titleSize].titleSize);
-    subtitleSplited = this.splittingContent(ctx, this.state.subtitleContent, TextSizes[this.state.subtitleSize].subtitleSize);
+    titleSplited = this.splittingContent(ctx, this.props.canva.titleContent, TextSizes[this.props.canva.titleSize].titleSize);
+    subtitleSplited = this.splittingContent(ctx, this.props.canva.subtitleContent, TextSizes[this.props.canva.subtitleSize].subtitleSize);
   }
 
   // 5. calculer la hauteur occupée par le texte
@@ -423,10 +314,10 @@ methods to calculate meta-datas
   getTextDatas = () => {
     countTitleLines = titleSplited.length;
     countSubtitleLines = subtitleSplited.length;
-    titleSize = TextSizes[this.state.titleSize].titleSize;
-    titleToTitle = TextSizes[this.state.titleSize].titleToTitle;
-    subtitleSize = TextSizes[this.state.subtitleSize].subtitleSize;
-    subtitleToSubtitle = TextSizes[this.state.titleSize].subtitleToSubtitle;
+    titleSize = TextSizes[this.props.canva.titleSize].titleSize;
+    titleToTitle = TextSizes[this.props.canva.titleSize].titleToTitle;
+    subtitleSize = TextSizes[this.props.canva.subtitleSize].subtitleSize;
+    subtitleToSubtitle = TextSizes[this.props.canva.titleSize].subtitleToSubtitle;
     let titleToSubtitleNeeded = 1;
 
     if (countTitleLines === 0 || countSubtitleLines === 0 ) {
@@ -436,7 +327,7 @@ methods to calculate meta-datas
     if (countTitleLines === 0) {
       spaceFilledByTitle = 0;
     } else {
-      spaceFilledByTitle = titleSize * countTitleLines + titleToTitle * (countTitleLines-1) + TextSizes[this.state.titleSize].titleToSubtitle * titleToSubtitleNeeded;
+      spaceFilledByTitle = titleSize * countTitleLines + titleToTitle * (countTitleLines-1) + TextSizes[this.props.canva.titleSize].titleToSubtitle * titleToSubtitleNeeded;
     }
 
     if (countSubtitleLines === 0) {
@@ -446,10 +337,10 @@ methods to calculate meta-datas
     }
 
     if (countTitleLines > 0) {
-      paddingTop = TextSizes[this.state.titleSize].paddingTop;
+      paddingTop = TextSizes[this.props.canva.titleSize].paddingTop;
       spaceFilledByTitle -= paddingTop;
     } else if (countSubtitleLines > 0 ) {
-      paddingTop = TextSizes[this.state.subtitleSize].paddingTop;
+      paddingTop = TextSizes[this.props.canva.subtitleSize].paddingTop;
       spaceFilledBySubtitle -= paddingTop;
     }
 
@@ -459,15 +350,15 @@ methods to calculate meta-datas
     } else {
       if (caption === "above") {
         if (countSubtitleLines > 0) {
-          spacingToDevice = TextSizes[this.state.subtitleSize].subtitleToDevice;
+          spacingToDevice = TextSizes[this.props.canva.subtitleSize].subtitleToDevice;
         } else {
-          spacingToDevice = TextSizes[this.state.titleSize].titleToDevice;
+          spacingToDevice = TextSizes[this.props.canva.titleSize].titleToDevice;
         }
       } else if (caption === "below") {
         if (countTitleLines > 0) {
-          spacingToText = TextSizes[this.state.subtitleSize].deviceToTitle
+          spacingToText = TextSizes[this.props.canva.subtitleSize].deviceToTitle
         } else {
-          spacingToText = TextSizes[this.state.subtitleSize].deviceToSubtitle
+          spacingToText = TextSizes[this.props.canva.subtitleSize].deviceToSubtitle
         }
       }
     }
@@ -572,9 +463,9 @@ methods to calculate meta-datas
   getTextStart = () => {
     let firstLineHeight = 0;
     if (countTitleLines > 0) {
-      firstLineHeight += (TextSizes[this.state.titleSize].titleSize - paddingTop);
+      firstLineHeight += (TextSizes[this.props.canva.titleSize].titleSize - paddingTop);
     } else if (countSubtitleLines > 0) {
-      firstLineHeight += (TextSizes[this.state.subtitleSize].subtitleSize - paddingTop);
+      firstLineHeight += (TextSizes[this.props.canva.subtitleSize].subtitleSize - paddingTop);
     }
 
     if (caption === "above") {
@@ -688,26 +579,16 @@ methods to draw and write on the canvas
 
   uploadScreenshot = (e) => {
     // e.preventDefault();
-    // const extension = e.target.files[0].name.substring(e.target.files[0].name.length-3, e.target.files[0].name.length);
     const blob = e.target.files[0].slice(0, e.target.files[0].size, e.target.files[0].type);
-    // const newFile = new File ([blob], `${this.props.canva.id}.${extension}`, {type: e.target.files[0].type});
     const newFile = new File ([blob], `${this.props.canva.id}.png`, {type: e.target.files[0].type});
-    // WARNING : I save the uploaded image with the extension "png" to make sure the new image will be saved on the last one and I won't have an image 28.jpg and a 28.png
-    // it works with the jpg I tested but it couldn't
-    // a solution would be to use the image extension for the new name of the image (see the 2 lines commented above)
-    // and to delete server side the previous image (tricky, and I'm lazy, so I didn't do it)
 
-    this.setState({
-      newScreenshot: true,
-      screenshotPresent: true,
-      screenshot: newFile,
-      screenshotURL: `/${this.props.userId}/${this.props.canva.projectId}/${newFile.name}`
-    })
+    this.props.handleChangeCanvas(this.props.canva.id, "screenshot", newFile);
+    this.props.handleChangeCanvas(this.props.canva.id, "screenshotURL", `/${this.props.userId}/${this.props.canva.projectId}/${newFile.name}`);
   }
 
   addCanvasBackground = (ctx) => {
     // creating the background
-    ctx.fillStyle = this.state.backgroundColor;
+    ctx.fillStyle = this.props.canva.backgroundColor;
     ctx.fillRect(0, 0, canvaWidth, canvaHeight);
   }
 
@@ -735,10 +616,12 @@ methods to draw and write on the canvas
         screenshot.src = e.target.result;
       }
 
-      reader.readAsDataURL(this.state.screenshot);
-      screenshot.onload = () => {
-        ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
-        this.addCanvasDevice(ctx);
+      if (this.props.canva.screenshot) {
+        reader.readAsDataURL(this.props.canva.screenshot);
+        screenshot.onload = () => {
+          ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
+          this.addCanvasDevice(ctx);
+        }
       }
   }
 
@@ -750,30 +633,6 @@ methods to draw and write on the canvas
         ctx.drawImage(deviceImg, this.state.deviceWidthStart, this.state.deviceHeightStart, this.state.deviceWidth, this.state.deviceHeight);
       }
     }
-  }
-
-  sendCanvasDatasToProject = () => {
-    const infos = {
-      metadatas: {
-        index: this.props.index,
-        canvasId: this.props.canva.id ? this.props.canva.id : "new"
-      },
-      datas: {
-        template: this.state.template,
-        backgroundColor: this.state.backgroundColor,
-        titleContent: this.state.titleContent,
-        titleSize: this.state.titleSize,
-        titleFont: this.state.titleFont,
-        titleColor: this.state.titleColor,
-        subtitleContent: this.state.subtitleContent,
-        subtitleSize: this.state.subtitleSize,
-        subtitleFont: this.state.subtitleFont,
-        subtitleColor: this.state.subtitleColor,
-        screenshotURL: this.state.screenshotURL
-      },
-      screenshot: this.state.screenshot
-    };
-    this.props.getCanvasDatas(infos);
   }
 
   downloadIt = (index) => {
@@ -794,7 +653,6 @@ the finale method where everything is played
     this.destroyPrevCanvas();
     this.createEmptyCanvas();
 
-    // const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
 
     // ctx.mozImageSmoothingEnabled = false;
@@ -823,8 +681,8 @@ the finale method where everything is played
 
     // drawing the text
     if (caption !== "none") {
-      this.writeText(ctx, titleStart, this.state.titleColor, this.state.titleFont, titleSize, titleSplited, titleToTitle);
-      this.writeText(ctx, subtitleStart, this.state.subtitleColor, this.state.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
+      this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
+      this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
     }
 
     // rotating if needed
@@ -839,13 +697,13 @@ the finale method where everything is played
 
     // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is drawn)
     // otherwise it's played here
-    if (this.state.screenshotPresent === true) {
+    if (this.props.canva.screenshotURL) {
       this.addCanvasScreenshot(ctx);
     } else {
       this.addCanvasDevice(ctx);
     }
 
-    this.sendCanvasDatasToProject();
+    // this.sendCanvasDatasToProject();
 
   }
 
@@ -884,7 +742,7 @@ methods to display the dropdown menus
           <p>settings ici</p>
 
           <label htmlFor={`template-${this.props.index}`}>Template:</label>
-          <select id={`template-${this.props.index}`} name="template" onChange={e => this.handleChange(e)} value={this.state.template} >
+          <select id={`template-${this.props.index}`} name="template" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.template} >
             {this.displayTemplates()}
           </select>
 
@@ -900,12 +758,12 @@ methods to display the dropdown menus
            id={`background-color-${this.props.index}`}
            name="backgroundColor"
            placeholder="Color"
-           value={this.state.backgroundColor}
-           onChange={e => this.handleChange(e)}
+           value={this.props.canva.backgroundColor}
+           onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`background-color-dropdown-${this.props.index}`}>Background Color Picker:</label>
-          <select id={`background-color-dropdown-${this.props.index}`} name="backgroundColor" onChange={e => this.handleChange(e)} value={this.state.backgroundColor} style={{backgroundColor: this.state.backgroundColor}} >
+          <select id={`background-color-dropdown-${this.props.index}`} name="backgroundColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.backgroundColor} style={{backgroundColor: this.props.canva.backgroundColor}} >
            {this.displayColors()}
           </select>
 
@@ -914,12 +772,12 @@ methods to display the dropdown menus
             id={`title-content-${this.props.index}`}
             name="titleContent"
             placeholder="Type your title here"
-            value={this.state.titleContent}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.titleContent}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`title-size-${this.props.index}`}>Title Size:</label>
-          <select id={`title-size-${this.props.index}`} name="titleSize" onChange={e => this.handleChange(e)} value={this.state.titleSize} >
+          <select id={`title-size-${this.props.index}`} name="titleSize" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleSize} >
             <option value="small">small</option>
             <option value="medium" default>medium</option>
             <option value="large">large</option>
@@ -931,17 +789,17 @@ methods to display the dropdown menus
             id={`title-color-text-${this.props.index}`}
             name="titleColor"
             placeholder="Color"
-            value={this.state.titleColor}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.titleColor}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`title-color-dropdown-${this.props.index}`}>Title Color Picker:</label>
-          <select id={`title-color-dropdown-${this.props.index}`} name="titleColor" onChange={e => this.handleChange(e)} value={this.state.titleColor} style={{backgroundColor: this.state.titleColor}} >
+          <select id={`title-color-dropdown-${this.props.index}`} name="titleColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleColor} style={{backgroundColor: this.props.canva.titleColor}} >
             {this.displayColors()}
           </select>
 
           <label htmlFor={`title-font-dropdown-${this.props.index}`}>Title Font:</label>
-          <select id={`title-font-dropdown-${this.props.index}`} name="titleFont" onChange={e => this.handleChange(e)} value={this.state.titleFont}>
+          <select id={`title-font-dropdown-${this.props.index}`} name="titleFont" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleFont}>
             {this.displayFonts()}
           </select>
 
@@ -950,12 +808,12 @@ methods to display the dropdown menus
             id={`subtitle-content-${this.props.index}`}
             name="subtitleContent"
             placeholder="Type your subtitle here"
-            value={this.state.subtitleContent}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.subtitleContent}
+            onChange={e => this.this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`subtitle-size-${this.props.index}`}>Subtitle Size:</label>
-          <select id={`subtitle-size-${this.props.index}`} name="subtitleSize" onChange={e => this.handleChange(e)} value={this.state.subtitleSize} >
+          <select id={`subtitle-size-${this.props.index}`} name="subtitleSize" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleSize} >
             <option value="small">small</option>
             <option value="medium" default>medium</option>
             <option value="large">large</option>
@@ -966,17 +824,17 @@ methods to display the dropdown menus
             id={`subtitle-color-${this.props.index}`}
             name="subtitleColor"
             placeholder="Color"
-            value={this.state.subtitleColor}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.subtitleColor}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`subtitle-color-dropdown-${this.props.index}`}>Subtitle Color Picker:</label>
-          <select id={`subtitle-color-dropdown-${this.props.index}`} name="subtitleColor" onChange={e => this.handleChange(e)} value={this.state.subtitleColor} style={{backgroundColor: this.state.subtitleColor}} >
+          <select id={`subtitle-color-dropdown-${this.props.index}`} name="subtitleColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleColor} style={{backgroundColor: this.props.canva.subtitleColor}} >
             {this.displayColors()}
           </select>
 
           <label htmlFor={`subtitle-font-dropdown-${this.props.index}`}>Subtitle Font:</label>
-          <select id={`subtitle-font-dropdown-${this.props.index}`} name="subtitleFont" onChange={e => this.handleChange(e)} value={this.state.subtitleFont}>
+          <select id={`subtitle-font-dropdown-${this.props.index}`} name="subtitleFont" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleFont}>
             {this.displayFonts()}
           </select>
 
