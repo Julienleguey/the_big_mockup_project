@@ -8,6 +8,7 @@ import Flash from './Flash';
 import ProjectCard from './ProjectCard';
 import RenameProjectModal from './RenameProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
+import DuplicateProjectModal from './DuplicateProjectModal';
 
 // import images
 import plus from '../images/add.svg';
@@ -83,7 +84,7 @@ class ProjectList extends React.Component {
   }
 
   setFlash = (type, msg) => {
-    console.log("seeting the flash");
+    console.log("setting the flash");
     this.setState({
       flash: true,
       type: type,
@@ -142,6 +143,15 @@ class ProjectList extends React.Component {
           closeModal={this.closeModal}
           projectId={this.state.projectIdModal}
           projectName={this.state.projectNameModal}
+        />
+
+        <DuplicateProjectModal
+          isOpen={this.state.modal === "duplicateProject" ? true : false}
+          setFlash={this.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          userId={this.props.loggedUserId}
         />
 
         <DeleteProjectModal

@@ -90,7 +90,7 @@ class ProjectCard extends Component {
           </OptionTitle>
           <OptionsMenus isOpen={this.state.options}>
             <Option onClick={() => this.props.openModal("renameProject", this.props.projectId, this.props.name)}>edit name</Option>
-            <Option><p>duplicate</p></Option>
+            <Option onClick={() => this.props.openModal("duplicateProject", this.props.projectId)}><p>duplicate</p></Option>
             <Option onClick={() => this.props.openModal("deleteProject", this.props.projectId, this.props.name)}><p>delete</p></Option>
           </OptionsMenus>
         </OptionsContainer>

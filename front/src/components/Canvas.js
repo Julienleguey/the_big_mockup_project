@@ -583,7 +583,7 @@ methods to draw and write on the canvas
     const newFile = new File ([blob], `${this.props.canva.id}.png`, {type: e.target.files[0].type});
 
     this.props.handleChangeCanvas(this.props.canva.id, "screenshot", newFile);
-    this.props.handleChangeCanvas(this.props.canva.id, "screenshotURL", `/${this.props.userId}/${this.props.canva.projectId}/${newFile.name}`);
+    this.props.handleChangeCanvas(this.props.canva.id, "screenshotURL", `/${this.props.userId}/${this.props.canva.ProjectId}/${newFile.name}`);
   }
 
   addCanvasBackground = (ctx) => {

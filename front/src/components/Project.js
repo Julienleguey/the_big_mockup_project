@@ -303,6 +303,7 @@ class Project extends Component {
         });
         this.reloadProject();
       }).catch( err => {
+        console.log(err);
         this.setFlash("error", "An error occured while saving the project. Please try again.");
       });
   }

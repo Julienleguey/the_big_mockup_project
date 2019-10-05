@@ -1,0 +1,51 @@
+https://github.com/sequelize/cli
+
+create a migration file and a model:
+npx sequelize-cli model:generate --name User --attributes firstName:string,lastName:string,email:string
+npx sequelize-cli db:migrate // pour ajouter la table à la db (et créer la db si elle n'existe pas)
+Il faut réécrire la migration et les models pour intégrer les trucs comme "validate", etc
+
+
+add migration to a model:
+sequelize migration:create --name Users
+
+  dans le fichier créé :
+  module.exports = {
+    up: function (queryInterface, Sequelize) {
+      return Promise.all([
+        queryInterface.addColumn(
+          'Users',
+          'gender',
+           Sequelize.STRING
+         ),
+        queryInterface.addColumn(
+          'Users',
+          'age',
+          Sequelize.STRING
+        )
+      ]);
+    },
+
+    down: function (queryInterface, Sequelize) {
+      // logic for reverting the changes
+    }
+  };
+
+  sequelize db:migrate // pour ajouter les champs à la table dans la db, mais il faut les ajouter manuellement dans le model
+
+
+add migration to have associations:
+https://medium.com/@andrewoons/how-to-define-sequelize-associations-using-migrations-de4333bf75a7
+sequelize migration:generate --name add-associations
+
+
+
+
+
+//
+npx sequelize-cli model:generate --name User --attributes firstName:string,lastName:string,email:string,country:string,job:string,password:string
+npx sequelize-cli model:generate --name Project --attributes name:string,os:string,size:string,device:string
+npx sequelize-cli model:generate --name Canva --attributes template:string,backgroundChoice:string,backgroundColor:string,backgroundImage:string,screenshotUrl:string,titleContent:string,titleFont:string,titleSize:string,titleColor:string,titleWeight:string,subtitleContent:string,subtitleFont:string,subtitleSize:string,subtitleColor:string,subtitleWeight:string
+
+
+//

@@ -14,26 +14,27 @@ const Button = styled.button`
   margin-bottom: 80px;
 `;
 
-const DeleteProjectModal = props => {
+const DuplicateProjectModal = props => {
 
-  function deleteProject(e) {
+  function duplicateProject(e) {
     e.preventDefault();
-    console.log("delete", props.projectId);
+    console.log("duplicate", props.projectId);
 
     const emailAddress = localStorage.getItem('emailAddress');
     const password = localStorage.getItem('password');
 
-    axios.delete(`http://localhost:5000/projects/delete/${props.projectId}`, {
-      params: {userId: props.userId},
+    axios.post(`http://localhost:5000/projects/duplicate/${props.projectId}`, {}, {
       auth: {
         username: emailAddress,
         password: password
       },
     }).then( res => {
+      console.log(res);
       props.setFlash("success", res.data);
       props.reloadProjects();
       props.closeModal();
     }).catch( err => {
+      console.log(err);
       props.setFlash("error", err.response.data);
       props.reloadProjects();
       props.closeModal();
@@ -49,16 +50,16 @@ const DeleteProjectModal = props => {
       PaperProps={{ square: true }}
       CloseProps={{ style: { marginTop: 16, marginRight: 16 } }}
       maxWidth="sm"
-      title="Delete the project"
+      title="Duplicate the project"
     >
       <Wrapper>
-          <p>Do you wish to delete this project? This action is definitive!</p>
-          <Button className="button" onClick={deleteProject}>Delete</Button>
+          <p>Do you wish to duplicate this project?</p>
+          <Button className="button" onClick={duplicateProject}>Duplicate</Button>
       </Wrapper>
     </Modal>
   )
 };
 
-export default DeleteProjectModal;
+export default DuplicateProjectModal;
 
 // https://itnext.io/how-to-build-a-dynamic-controlled-form-with-react-hooks-2019-b39840f75c4f
