@@ -67,7 +67,7 @@ class SignUp extends Component {
                         email: this.state.emailAddress,
                         password: this.state.password
                       }).then( response => {
-                        context.actions.signin(this.state.emailAddress, this.state.password);
+                        context.actions.login(this.state.emailAddress, this.state.password);
                       }).catch(error => {
                         if (error.response.status === 500 ) {
                           this.props.history.push("/error");

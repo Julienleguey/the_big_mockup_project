@@ -39,17 +39,13 @@ const RenameProjectModal = props => {
   function handleSubmit(e) {
     e.preventDefault();
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     axios.put(`http://localhost:5000/projects/rename/${props.projectId}`, {
       name: name
     }, {
-      auth: {
-        username: emailAddress,
-        password: password
-      },
-    }).then( res => {
+        headers: { Authorization: `obladi ${token}`}
+      }).then( res => {
       props.setFlash("success", res.data);
       props.reloadProjects();
       props.closeModal();

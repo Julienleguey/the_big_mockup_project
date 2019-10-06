@@ -50,9 +50,8 @@ class SignIn extends Component {
 
                 const signin = (e) => {
                   e.preventDefault();
-
-                  // when the user signs in, the signin method from context is called (cf /Context/index.js)
-                  context.actions.signin(this.state.emailAddress, this.state.password, true, this.state.prevPage);
+                  // when the user signs in, the login method from context is called (cf /Context/index.js)
+                  context.actions.login(this.state.emailAddress, this.state.password, true, this.state.prevPage);
                 }
 
 

@@ -18,17 +18,12 @@ const DeleteProjectModal = props => {
 
   function deleteProject(e) {
     e.preventDefault();
-    console.log("delete", props.projectId);
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     axios.delete(`http://localhost:5000/projects/delete/${props.projectId}`, {
       params: {userId: props.userId},
-      auth: {
-        username: emailAddress,
-        password: password
-      },
+      headers: { Authorization: `obladi ${token}`}
     }).then( res => {
       props.setFlash("success", res.data);
       props.reloadProjects();

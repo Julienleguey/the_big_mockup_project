@@ -9,6 +9,7 @@ function to create a folder for the newly created project
 *********************************************************/
 
 function createProjectFolder(userId, projectId) {
+  console.log("INSIDE CREATE PROJECT FOLDER");
   const directoryPath = `${__dirname}/../../screenshots/${userId}/${projectId}`;
   const directory = path.normalize(directoryPath);
 
@@ -40,7 +41,7 @@ function destroyTempFolder(req, res) {
     fs.rmdir(directory, (err) => {
       if (err) throw err;
     });
-  }, 300);
+  }, 1000);
 }
 
 
@@ -81,6 +82,7 @@ function destroyProjectFolder(req, res) {
 
 // rename a file to change its folder
 function moveFilesFromTempToProjectFolder(req, res, metas) {
+  console.log("INSIDE MOVE FILES ETC");
   const originPath = `${__dirname}/../../screenshots/temp_${req.currentUser.id}/`;
   const origin = path.normalize(originPath);
 

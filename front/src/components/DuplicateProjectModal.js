@@ -18,27 +18,22 @@ const DuplicateProjectModal = props => {
 
   function duplicateProject(e) {
     e.preventDefault();
-    console.log("duplicate", props.projectId);
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     axios.post(`http://localhost:5000/projects/duplicate/${props.projectId}`, {}, {
-      auth: {
-        username: emailAddress,
-        password: password
-      },
-    }).then( res => {
-      console.log(res);
-      props.setFlash("success", res.data);
-      props.reloadProjects();
-      props.closeModal();
-    }).catch( err => {
-      console.log(err);
-      props.setFlash("error", err.response.data);
-      props.reloadProjects();
-      props.closeModal();
-    })
+        headers: { Authorization: `obladi ${token}`}
+      }).then( res => {
+        console.log(res);
+        props.setFlash("success", res.data);
+        props.reloadProjects();
+        props.closeModal();
+      }).catch( err => {
+        console.log(err);
+        props.setFlash("error", err.response.data);
+        props.reloadProjects();
+        props.closeModal();
+      })
   }
 
   return (

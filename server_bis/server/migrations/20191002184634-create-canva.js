@@ -18,10 +18,6 @@ module.exports = {
         defaultValue: "#ffffff"
       },
       backgroundImage: Sequelize.STRING,
-      // screenshot: {
-      //   type: Sequelize.STRING,
-      //   defaultValue: ""
-      // },
       screenshotURL: {
         type: Sequelize.STRING,
         defaultValue: ""

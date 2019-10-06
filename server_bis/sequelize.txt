@@ -46,6 +46,6 @@ sequelize migration:generate --name add-associations
 npx sequelize-cli model:generate --name User --attributes firstName:string,lastName:string,email:string,country:string,job:string,password:string
 npx sequelize-cli model:generate --name Project --attributes name:string,os:string,size:string,device:string
 npx sequelize-cli model:generate --name Canva --attributes template:string,backgroundChoice:string,backgroundColor:string,backgroundImage:string,screenshotUrl:string,titleContent:string,titleFont:string,titleSize:string,titleColor:string,titleWeight:string,subtitleContent:string,subtitleFont:string,subtitleSize:string,subtitleColor:string,subtitleWeight:string
-
+npx sequelize-cli model:generate --name Token --attributes token:string,expiracy:date
 
 //

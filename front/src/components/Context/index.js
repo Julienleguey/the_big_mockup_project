@@ -15,9 +15,9 @@ class Provider extends Component {
   constructor() {
     super();
     this.state = {
+      isLogged: false,
       loggedUserId: "",
       emailAddress: "",
-      password: "",
       firstName: "",
       lastName: "",
       readyRedirect: false,
@@ -27,42 +27,55 @@ class Provider extends Component {
     };
   }
 
-  // when mounting, the emailAddress and password of the signed in user are retrieved from localStorage
+  // when mounting, the token is retrieved from localStorage
   // the user is signed in every time this component mount
   componentWillMount() {
-    console.log("Context mounting");
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
-    console.log(emailAddress);
-    console.log(password);
-    if (emailAddress) {
-      console.log("okay, we have an email address, trying to sign in now");
-      this.signin(emailAddress, password, false, "/");
+    const token = localStorage.getItem('token');
+    if (token) {
+      console.log("okay, we have a token, trying to sign in now");
+      this.signWithToken(token);
     }
   }
 
-  // sign in method
-  // used after sign in, sign up, and every time this component mount
-  signin = (emailAddress, password, readyRedirect, prevPage) => {
-    axios.get(`http://localhost:5000/users`, {
+
+  // used only when the app is launched
+  signWithToken = (token) => {
+    axios.get(`http://localhost:5000/users/signwithtoken`, {
+        headers: { Authorization: `obladi ${token}`}
+      }).then( res => {
+        console.log(res);
+        this.setState({
+          isLogged: true,
+          loggedUserId: res.data.user.id,
+          emailAddress: res.data.user.email,
+          firstName: res.data.user.firstName,
+          lastName: res.data.user.lastName
+        });
+      }).catch(error => {
+        console.error(error);
+      });
+  }
+
+
+  // login to create a token and put it in localStorage ("signup" and "signin" actions)
+  login = (emailAddress, password, readyRedirect, prevPage) => {
+    axios.get(`http://localhost:5000/users/login`, {
       auth: {
         username: emailAddress,
         password: password
       }
-    }).then( response => {
-      console.log("okay, we got an answer, the user passed the test")
+    }).then( res => {
       this.setState({
-        emailAddress: emailAddress,
-        password: password,
-        loggedUserId: response.data.id,
-        firstName: response.data.firstName,
-        lastName: response.data.lastName,
+        isLogged: true,
+        loggedUserId: res.data.user.id,
+        emailAddress: res.data.user.email,
+        firstName: res.data.user.firstName,
+        lastName: res.data.user.lastName,
         readyRedirect: readyRedirect,
         prevPage: prevPage
       });
-      // storing the user's credentials in localStorage
-      localStorage.setItem('emailAddress', this.state.emailAddress);
-      localStorage.setItem('password', this.state.password);
+      // storing the token in the local storage
+      localStorage.setItem('token', res.data.token);
       localStorage.setItem('loggedUserId', this.state.loggedUserId);
     }).then( () => {
       // if the user just signed in (using UserSignIn.j), (s)he is redirected to the previous page
@@ -92,9 +105,9 @@ class Provider extends Component {
     Promise.resolve()
       .then( () => {
       this.setState({
+        isLogged: false,
         loggedUserId: "",
         emailAddress: "",
-        password: "",
         firstName: "",
         lastName: "",
         readyRedirect: false,
@@ -108,13 +121,12 @@ class Provider extends Component {
     })
   }
 
-
   render() {
     return(
       <UserContext.Provider value={{
+        isLogged: this.state.isLogged,
         loggedUserId: this.state.loggedUserId,
         emailAddress: this.state.emailAddress,
-        password: this.state.password,
         readyRedirect: this.state.readyRedirect,
         prevPage: this.state.prevPage,
         firstName: this.state.firstName,
@@ -122,8 +134,8 @@ class Provider extends Component {
         errorMessageSignIn: this.state.errorMessageSignIn,
         isErrorSignIn: this.state.isErrorSignIn,
         actions: {
-          signin: this.signin,
-          signout: this.signout
+          signout: this.signout,
+          login: this.login
         }
       }}>
         { this.props.children }
@@ -135,4 +147,3 @@ class Provider extends Component {
 
 export default withRouter(Provider);
 export const Consumer = UserContext.Consumer;
-// export const UserContextBis = UserContext;

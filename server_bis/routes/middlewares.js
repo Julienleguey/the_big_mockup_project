@@ -5,6 +5,7 @@ const Project = require("../server/models").Project;
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
+
 // adding bcrypt to hash the passwords
 const bcrypt = require('bcryptjs');
 const salt = bcrypt.genSaltSync(10);
@@ -13,16 +14,73 @@ const salt = bcrypt.genSaltSync(10);
 const auth = require('basic-auth');
 
 
+let jwt = require('jsonwebtoken');
+const config = require('../config/config.js');
+
 /*************************
 Middlewares
 **************************/
 
+function checkToken(req, res, next) {
+  console.log("INSIDE CHECK TOKEN");
+  console.log(req.headers);
+  let token = req.headers['x-access-token'] || req.headers['authorization']; // Express headers are auto converted to lowercase
+  console.log(token);
+  if (token.startsWith('obladi ')) {
+    // Remove Bearer from string
+    token = token.slice(7, token.length);
+  }
+  console.log(token);
+
+  if (token) {
+    console.log("INSIDE OF TOKEN");
+    // jwt.verify(token, config.secret, (err, decoded) => {
+    jwt.verify(token, config.secret, (err, decoded) => {
+      if (err) {
+        console.log("TOKEN NOT VALID!!!!!!!")
+        // return res.json({
+        //   success: false,
+        //   message: 'Token is not valid'
+        // });
+        next(err);
+      } else {
+        console.log("TOKEN VALID! WOUHOUUUUUUUUUUUUUUUUUUUUUUUUU!");
+        // req.decoded = decoded;
+        // req.currentUser = decoded.username;
+        User.findOne({ where: {email: decoded.username}}).then( user => {
+          console.log("USER FOUND HERE");
+          req.currentUser = user;
+          next();
+        });
+        // next();
+        // console.log(decoded);
+        // next();
+      }
+    });
+  } else {
+    console.log("YA PAS DE TOKEN");
+    next(err);
+    // return res.json({
+    //   success: false,
+    //   message: 'Auth token is not supplied'
+    // });
+  }
+  console.log("STILL THINGS HERE");
+};
+
+// function verified (req, res) {
+//   res.json({
+//     success: true,
+//     message: 'Index page'
+//   });
+// }
+
 // Defining an empty authenticateUser() middleware function in our routes module:
 function authenticateUser(req, res, next) {
-
   User.findOne({ where: {email: auth(req).name}}).then((user) => {
     // If the user is found:
     if (user) {
+      console.log("USER FOUND");
       const authenticated = bcrypt.compareSync(auth(req).pass, user.password);
 
       // If the passwords match:
@@ -93,5 +151,6 @@ function projectOwner(req, res, next) {
 module.exports = {
     authenticateUser: authenticateUser,
     profileOwner: profileOwner,
-    projectOwner: projectOwner
+    projectOwner: projectOwner,
+    checkToken: checkToken
 }

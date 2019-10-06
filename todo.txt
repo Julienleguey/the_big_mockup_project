@@ -144,3 +144,10 @@ Pour appeler context inside component lifecycle : https://reactjs.org/docs/conte
 
 Excellente doc dont je me suis inspiré pour faire fonctionner les relations entre tables (même si ce que j'ai fait n'est pas idéal):
 https://lorenstewart.me/2016/09/12/sequelize-table-associations-joins/
+
+
+about passport :
+https://itnext.io/implementing-json-web-tokens-passport-js-in-a-javascript-application-with-react-b86b1f313436
+
+about jwt :
+https://medium.com/dev-bits/a-guide-for-adding-jwt-token-based-authentication-to-your-single-page-nodejs-applications-c403f7cf04f4

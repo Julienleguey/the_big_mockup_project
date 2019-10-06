@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authenticateUser = require("./middlewares").authenticateUser;
+const checkToken = require("./middlewares").checkToken;
 const profileOwner = require("./middlewares").profileOwner;
 const fs = require('fs');
 const path = require('path');
@@ -12,6 +13,14 @@ const Op = Sequelize.Op;
 // adding bcrypt to hash the passwords
 const bcrypt = require('bcryptjs');
 const salt = bcrypt.genSaltSync(10);
+
+// adding basic-auth to authenticate the user
+const auth = require('basic-auth');
+
+// for jwt
+let jwt = require('jsonwebtoken');
+let config = require('../config/config');
+let middleware = require('./middlewares');
 
 /***********************************************************
 fonction to create a folder for the screenshots of the user
@@ -29,13 +38,44 @@ function createUserFolder(user) {
 /*************
 User routes
 *************/
-
-// get one user and authenticate him
-router.get('/', authenticateUser, function(req, res, next) {
-  User.findOne({ where: { email: req.currentUser.email } }).then( (user) => {
-    res.json(user);
+router.get(`/signwithtoken`, checkToken, (req, res) => {
+  User.findOne({ where: { email: "julien@example.com" } }).then( (user) => {
+    res.json({
+      user: user,
+      success: true,
+      message: 'Authentication successful!'
+    });
   });
 })
+
+
+router.get('/login', authenticateUser, function(req, res, next) {
+  const username = auth(req).name;
+  const password = auth(req).pass;
+
+  if (username && password) {
+      const token = jwt.sign({username: username},
+        config.secret,
+        { expiresIn: '24h' // expires in 24 hours
+        }
+      );
+      // return the JWT token for the future API calls
+      User.findOne({ where: { email: req.currentUser.email } }).then( (user) => {
+        res.json({
+          user: user,
+          success: true,
+          message: 'Authentication successful!',
+          token: token
+        });
+      });
+    } else {
+      console.log("ERROR FORBIDDEN");
+      res.send(403).json({
+        success: false,
+        message: 'Incorrect username or password'
+      });
+    }
+});
 
 // // get all the users
 // // FOR DEVELOPMENT PURPOSES ONLY
@@ -94,8 +134,8 @@ router.post('/new', function(req, res, next) {
 });
 
 
-// update one user
-router.put("/:id", authenticateUser, profileOwner, function(req, res, next){
+// update one user PAS FINI, PAS ENCORE DE PAGE POUR MODIFIER LE USER
+router.put("/:id", checkToken, profileOwner, function(req, res, next){
   User.findOne({ where: { id: req.params.id } }).then(function(user) {
     if (user) {
       console.log("user fouuuuund!");

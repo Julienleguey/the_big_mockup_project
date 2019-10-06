@@ -11,10 +11,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: "#ffffff"
     },
     backgroundImage: DataTypes.STRING,
-    screenshot: {
-      type: DataTypes.STRING,
-      defaultValue: ""
-    },
     screenshotURL: {
       type: DataTypes.STRING,
       defaultValue: ""

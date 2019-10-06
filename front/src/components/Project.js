@@ -97,14 +97,11 @@ class Project extends Component {
   getProject = () => {
     const projectId = this.props.location.state.projectId;
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     axios.get(`http://localhost:5000/projects/project/${projectId}`, {
-      auth: {
-        username: emailAddress,
-        password: password
-      }}).then( res => {
+      headers: { Authorization: `obladi ${token}`}
+    }).then( res => {
         const canvas = res.data.Canvas;
         const images = [];
         canvas.forEach( canva => {
@@ -255,8 +252,7 @@ class Project extends Component {
     });
 
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     const temp = [];
 
@@ -288,12 +284,10 @@ class Project extends Component {
 
     axios.post(`http://localhost:5000/projects/save`, data,
       {
-        auth: {
-        username: emailAddress,
-        password: password
-      }},
-      {
-        headers: {'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `obladi ${token}`
+        }
       }
     ).then( res => {
         this.setState({
@@ -309,17 +303,13 @@ class Project extends Component {
   }
 
   addNewCanva = () => {
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
     axios.post(`http://localhost:5000/canvas/new`, {
       projectId: this.state.projectId,
       template: 1
     }, {
-      auth: {
-        username: emailAddress,
-        password: password
-      },
+      headers: { Authorization: `obladi ${token}`}
     }).then( res => {
       this.setState({
         canvas: this.state.canvas.concat(res.data),
@@ -344,16 +334,12 @@ class Project extends Component {
       screenshotUrl: screenshotUrl
     };
 
-    const emailAddress = localStorage.getItem('emailAddress');
-    const password = localStorage.getItem('password');
+    const token = localStorage.getItem("token");
 
-    axios.delete(`http://localhost:5000/canvas/delete/${canvaId}`,
-      { params: data,
-        auth: {
-        username: emailAddress,
-        password: password
-      }}
-    ).then( res => {
+    axios.delete(`http://localhost:5000/canvas/delete/${canvaId}`, {
+        params: data,
+        headers: { Authorization: `obladi ${token}`}
+      }).then( res => {
         let canvaToDelete = {};
         this.state.canvas.find(canva => {
           if (canva.id === canvaId) {

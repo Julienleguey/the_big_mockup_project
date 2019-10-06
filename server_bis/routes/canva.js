@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authenticateUser = require("./middlewares").authenticateUser;
+const checkToken = require("./middlewares").checkToken;
 const projectOwner = require("./middlewares").projectOwner;
 const User = require("../server/models").User;
 const Project = require("../server/models").Project;
@@ -27,7 +27,7 @@ router.get('/all', function(req, res, next) {
 
 // get all the canvas of the currently open project of the anthenticated user
 // (but the user has to be authenticated for the page calling it to be displayed in the client)
-router.get('/list/:id', authenticateUser, function(req, res, next) {
+router.get('/list/:id', checkToken, function(req, res, next) {
   Project.findOne({
     where: { id: req.params.id },
     include: [
@@ -43,7 +43,7 @@ router.get('/list/:id', authenticateUser, function(req, res, next) {
 
 
 // create a new canva
-router.post('/new', authenticateUser, function(req, res) {
+router.post('/new', checkToken, function(req, res) {
 
   const canva = {
     ProjectId: req.body.projectId,
@@ -61,7 +61,7 @@ router.post('/new', authenticateUser, function(req, res) {
 
 
 //204 - Delete a canva
-router.delete('/delete/:id', authenticateUser, function(req, res, next){
+router.delete('/delete/:id', checkToken, function(req, res, next){
   const id = req.params.id;
 
   Canva.destroy({

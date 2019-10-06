@@ -44,7 +44,7 @@ const NewProject = styled.a`
     margin: 0 auto;
   }
 
-  h3{
+  h3 {
     text-align: center;
   }
 `;
@@ -73,8 +73,11 @@ class ProjectList extends React.Component {
 
   loadProjects = () => {
     const userId = this.props.loggedUserId;
+    const token = localStorage.getItem('token');
 
-    axios.get(`http://localhost:5000/projects/list/${userId}`).then( response => {
+    axios.get(`http://localhost:5000/projects/list/${userId}`, {
+        headers: { Authorization: `obladi ${token}`}
+      }).then( response => {
         this.setState({
           projects: response.data
         })
@@ -84,7 +87,6 @@ class ProjectList extends React.Component {
   }
 
   setFlash = (type, msg) => {
-    console.log("setting the flash");
     this.setState({
       flash: true,
       type: type,

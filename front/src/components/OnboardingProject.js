@@ -120,19 +120,18 @@ class Onboarding extends Component {
     this.setState({ [key]: value })
   };
 
-  handleSubmit = (e, emailAddress, password) => {
+  handleSubmit = (e) => {
     e.preventDefault();
 
+    const token = localStorage.getItem("token");
+
     axios.post(`http://localhost:5000/projects/new`, {
-      name: this.state.name,
-      os: this.state.os,
-      device: this.state.device,
-      template: this.state.template
-    }, {
-      auth: {
-        username: emailAddress,
-        password: password
-      },
+        name: this.state.name,
+        os: this.state.os,
+        device: this.state.device,
+        template: this.state.template
+      }, {
+      headers: { Authorization: `obladi ${token}`}
     }).then( res => {
       console.log(res);
       console.log(res.data.id);
@@ -192,7 +191,7 @@ class Onboarding extends Component {
             <Consumer>
               { context => {
                 return(
-                  <Form onSubmit={e => this.handleSubmit(e, context.emailAddress, context.password)}>
+                  <Form onSubmit={e => this.handleSubmit(e)}>
                     <Input id="name" type="text" name="name" value={this.state.name} onChange={this.handleInput}/>
                     <Button className="button" type="submit">Create project</Button>
                   </Form>

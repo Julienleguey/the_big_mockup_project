@@ -12,6 +12,7 @@ const multer = require('multer');
 // auth middlewares
 const authenticateUser = require("./middlewares").authenticateUser;
 const projectOwner = require("./middlewares").projectOwner;
+const checkToken = require("./middlewares").checkToken;
 
 // file helpers
 const createProjectFolder = require("./helpers/fileHelper").createProjectFolder;
@@ -77,7 +78,7 @@ router.get('/all', function(req, res, next) {
 // works without authentication and user id
 // (but the user has to be authenticated for the page calling it to be displayed in the client)
 // (ça devrait pas être dans les routes du user, ça ?)
-router.get('/list/:id', function(req, res, next) {
+router.get('/list/:id', checkToken, function(req, res, next) {
   User.findOne({
     where: { id: req.params.id },
     include: [
@@ -92,7 +93,7 @@ router.get('/list/:id', function(req, res, next) {
 
 
 // get one project and its canvas
-router.get('/project/:id', authenticateUser, function(req, res, next) {
+router.get('/project/:id', checkToken, function(req, res, next) {
   Project.findOne({
     where: { id: req.params.id },
     include: [
@@ -107,7 +108,7 @@ router.get('/project/:id', authenticateUser, function(req, res, next) {
 
 
 // create a new project
-router.post('/new', authenticateUser, function(req, res, next) {
+router.post('/new', checkToken, function(req, res, next) {
   const project = {
     UserId: req.currentUser.id,
     name: req.body.name,
@@ -115,17 +116,21 @@ router.post('/new', authenticateUser, function(req, res, next) {
     device: req.body.device
   }
 
+  console.log("project: ", project);
+
   Project.create(project).then( newProject => {
     createProjectFolder(newProject.UserId, newProject.id);
     createEmptyCanva(req, res, newProject.id);
+    console.log("PROJECT CREATED AND ALL");
   }).catch(function(err){
+    console.log("THERE WAS AN ERROR WHIL CREATING THE PROJECT");
     res.status(500).send("error while creating a project");
   });
 });
 
 
 // saving the project, the canvas and the screenshots
-router.post('/save', authenticateUser, createTempFolder, upload.array('screenshots'), function(req, res, next){
+router.post('/save', checkToken, createTempFolder, upload.array('screenshots'), function(req, res, next){
   const metas = JSON.parse(req.body.metas);
   const projectDatas = JSON.parse(req.body.project);
   const canvas = JSON.parse(req.body.canvas);
@@ -136,12 +141,12 @@ router.post('/save', authenticateUser, createTempFolder, upload.array('screensho
 
 
 // update project name
-router.put('/rename/:id', authenticateUser, projectOwner, function(req, res, next) {
+router.put('/rename/:id', checkToken, projectOwner, function(req, res, next) {
   updateName(req, res);
 });
 
 // 201 duplicate a project
-router.post('/duplicate/:id', authenticateUser, projectOwner, function(req, res) {
+router.post('/duplicate/:id', checkToken, projectOwner, function(req, res) {
   const id = req.params.id;
 
   Project.findOne({where: {id: id}, include: [
@@ -169,7 +174,7 @@ router.post('/duplicate/:id', authenticateUser, projectOwner, function(req, res)
 
 
 //204 - Delete a project
-router.delete('/delete/:id', authenticateUser, projectOwner, function(req, res, next){
+router.delete('/delete/:id', checkToken, projectOwner, function(req, res, next){
   const id = req.params.id;
 
   Project.destroy({

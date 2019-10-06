@@ -37,7 +37,7 @@ const Header = () => (
     <Middle>
       <Consumer>
         { context => (
-          <span>Welcome{context.emailAddress === "" ? "" : ` ${context.firstName} ${context.lastName}` }!</span>
+          <span>Welcome{context.isLogged ? ` ${context.firstName} ${context.lastName}` : ""}!</span>
         )}
       </Consumer>
     </Middle>
@@ -45,7 +45,7 @@ const Header = () => (
       <Consumer>
         { context => (
           <nav>
-            { context.emailAddress !== "" ?
+            { context.isLogged ?
             <Link className="signout" to="/signout">Sign Out</Link>
             :
             <>

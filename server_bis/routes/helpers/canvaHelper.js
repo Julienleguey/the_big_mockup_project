@@ -6,13 +6,19 @@ const path = require('path');
 
 // create an empty canva
 function createEmptyCanva(req, res, projectId) {
+  console.log("INSIDE CREATE EMPTY CANVA");
   const canva = {
     ProjectId: projectId,
     template: req.body.template
-  }
+  };
+
+  console.log("CANVA: ", canva);
   Canva.create(canva).then( canva => {
+    console.log("CANVA CREATED");
     res.json(canva);
   }).catch(function(err){
+    console.log("CANVA NOT CREATED");
+    console.log(err);
     res.sendStatus(500).send("error while creating a canva for the project");
   });
 }
