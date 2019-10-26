@@ -36,6 +36,14 @@ module.exports = {
           }
         }
       },
+      premiumUntil: {
+        type: Sequelize.DATE
+      },
+      status: {
+        type: Sequelize.ENUM,
+        values: ['active', 'pre_suspended', 'suspended'],
+        defaultValue: "suspended"
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

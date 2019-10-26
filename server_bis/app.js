@@ -4,6 +4,8 @@
 const express = require('express');
 const morgan = require('morgan');
 // const routes = require("./routes");
+const dotenv = require('dotenv');
+dotenv.config();
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var path = require('path');
@@ -12,6 +14,11 @@ const cors = require('cors');
 const userRoutes = require("./routes/user");
 const projectRoutes = require("./routes/project");
 const canvaRoutes = require("./routes/canva");
+const stripeRoutes = require("./routes/stripe");
+
+const preSuspendUsers = require("./jobs/jobs").preSuspendUsers;
+const suspendUsers = require("./jobs/jobs").suspendUsers;
+
 
 
 // configuring options for cors, for the client to access the full Headers
@@ -32,6 +39,7 @@ app.use(morgan('dev'));
 // app.use(bodyParser()); ==> deprecated, replaced by below
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(require("body-parser").text());
 
 
 // setup cors
@@ -50,6 +58,7 @@ app.use(express.static(path.join(__dirname, 'screenshots'))); // hm, what ?
 app.use('/users', userRoutes);
 app.use('/projects', projectRoutes);
 app.use('/canvas', canvaRoutes);
+app.use('/stripe', stripeRoutes);
 
 // setup a friendly greeting for the root route
 app.get('/', (req, res) => {
@@ -80,7 +89,15 @@ app.use((err, req, res, next) => {
 });
 
 // set our port
-app.set('port', process.env.PORT || 5000);
+// app.set('port', process.env.PORT || 5000);
+app.set('port', process.env.PORT);
+
+/************************
+JOBS
+************************/
+preSuspendUsers();
+suspendUsers();
+
 
 // start listening on our port
 const server = app.listen(app.get('port'), () => {

@@ -127,11 +127,44 @@ router.post('/new', function(req, res, next) {
         // create a folder
         createUserFolder(user);
 
-        res.redirect("/");
+        res.redirect("/"); // euh, mais c'est quoi ça ?
       }
     })
   }
 });
+
+
+// user takes the status "testing"
+router.post("/testing/:id", checkToken, profileOwner, function(req, res) {
+  User.findOne({ where: { id: req.params.id }, include: [
+    {
+      model: Project
+    }
+  ]}).then( user => {
+    if (user) {
+      const projects = user.Projects;
+      user.update({status: "testing"});
+      projects.forEach(project => {
+        const req = {
+          query: {},
+          params: {}
+        };
+        req.query.userId = project.UserId;
+        req.params.id = project.id;
+        const res = "";
+        Project.destroy({
+          where: {id: project.id}
+        }).then( () => {
+          destroyAllFiles(req, res);
+        }).then( () => {
+          destroyProjectFolder(req, res);
+        });
+      });
+    }
+  }).then( () => {
+    res.send(200);
+  })
+})
 
 
 // update one user PAS FINI, PAS ENCORE DE PAGE POUR MODIFIER LE USER
@@ -184,8 +217,18 @@ router.delete("/delete/:id", function(req, res, next){
   }).then(function(){
     res.redirect("/");
   }).catch(function(err){
-    res.send(500);
+    res.sendStatus(500);
   });
+});
+
+// 200 - Check that the user is active
+router.get("/check_user_active", checkToken, function(req, res) {
+  console.log(req.currentUser.status);
+  if (req.currentUser.status === "active") {
+    res.json({permission: true});
+  } else {
+    res.json({permission: false});
+  }
 });
 
 module.exports = router;

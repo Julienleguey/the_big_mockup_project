@@ -21,7 +21,7 @@ const DeleteProjectModal = props => {
 
     const token = localStorage.getItem("token");
 
-    axios.delete(`http://localhost:5000/projects/delete/${props.projectId}`, {
+    axios.delete(`${process.env.REACT_APP_API_ENDPOINT}/projects/delete/${props.projectId}`, {
       params: {userId: props.userId},
       headers: { Authorization: `obladi ${token}`}
     }).then( res => {

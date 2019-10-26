@@ -69,7 +69,6 @@ class ProjectCard extends Component {
 
   openOptions = () => {
     this.setState({options: true});
-
     document.addEventListener("click", this.closeOptions);
   }
 

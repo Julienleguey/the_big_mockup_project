@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import styled from 'styled-components';
 import { withRouter } from 'react-router-dom';
 import Canvas from './Canvas';
-import Flash from './Flash';
 import axios from 'axios';
 import DeviceSize from '../params/deviceSize.js';
+import NeedPremiumModal from './NeedPremiumModal.js';
 
 // import images
 import plus from '../images/add.svg';
@@ -78,9 +78,6 @@ class Project extends Component {
   constructor() {
     super();
     this.state = {
-      flash: false,
-      type: "standard",
-      message: "",
       userId: "",
       projectId: "",
       name: "",
@@ -97,41 +94,42 @@ class Project extends Component {
   getProject = () => {
     const projectId = this.props.location.state.projectId;
 
-    const token = localStorage.getItem("token");
-
-    axios.get(`http://localhost:5000/projects/project/${projectId}`, {
-      headers: { Authorization: `obladi ${token}`}
-    }).then( res => {
-        const canvas = res.data.Canvas;
-        const images = [];
-        canvas.forEach( canva => {
-          images.push(this.loadSavedScreenshot(canva.screenshotURL));
-        })
-
-        Promise.all(images).then( values => {
-          canvas.forEach( (canva, index) => {
-            canva.screenshot = values[index];
+    if (projectId) {
+      const token = localStorage.getItem("token");
+      axios.get(`${process.env.REACT_APP_API_ENDPOINT}/projects/project/${projectId}`, {
+        headers: { Authorization: `obladi ${token}`}
+      }).then( res => {
+          const canvas = res.data.Canvas;
+          const images = [];
+          canvas.forEach( canva => {
+            images.push(this.loadSavedScreenshot(canva.screenshotURL));
           })
-        }).then( () => {
-          this.setState({
-            userId: this.props.location.state.userId,
-            projectId: this.props.location.state.projectId,
-            name: res.data.name,
-            os: res.data.os,
-            device: res.data.device,
-            canvas: canvas
+
+          Promise.all(images).then( values => {
+            canvas.forEach( (canva, index) => {
+              canva.screenshot = values[index];
+            })
+          }).then( () => {
+            this.setState({
+              userId: this.props.location.state.userId,
+              projectId: this.props.location.state.projectId,
+              name: res.data.name,
+              os: res.data.os,
+              device: res.data.device,
+              canvas: canvas
+            })
           })
-        })
-      }).catch(err => {
-        this.setFlash("error", "An error occured. Please refresh the page or try to go to the Projects page.");
-      });
+        }).catch(err => {
+          this.props.context.actions.setFlash("error", "An error occured. Please refresh the page or try to go to the Projects page.");
+        });
+    }
   }
 
   loadSavedScreenshot = (screenshotURL) => {
     return new Promise((resolve, reject) => {
       if (screenshotURL !== "") {
         axios.get(
-          `http://localhost:5000${screenshotURL}`,
+          `${process.env.REACT_APP_API_ENDPOINT}${screenshotURL}`,
           { responseType: 'arraybuffer' },
         )
         .then(response => {
@@ -211,17 +209,23 @@ class Project extends Component {
     }))
   }
 
-  setFlash = (type, msg) => {
-    this.setState({
-      flash: true,
-      type: type,
-      message: msg
-    })
+  tryingToSave = () => {
+    if (this.props.context.status === "active") {
+      this.saveProject();
+    } else {
+      this.openModal("needPremium");
+    }
   }
 
-  closeFlash = () => {
+  openModal = (modalName) => {
     this.setState({
-      flash: false
+      modal: modalName
+    });
+  }
+
+  closeModal = () => {
+    this.setState({
+      modal: ""
     });
   }
 
@@ -282,7 +286,7 @@ class Project extends Component {
     data.append('canvas', JSON.stringify(canvasDatas));
     data.append('metas', JSON.stringify(metas));
 
-    axios.post(`http://localhost:5000/projects/save`, data,
+    axios.post(`${process.env.REACT_APP_API_ENDPOINT}/projects/save`, data,
       {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -290,39 +294,29 @@ class Project extends Component {
         }
       }
     ).then( res => {
-        this.setState({
-          flash: true,
-          type: "success",
-          message: res.data
-        });
+        this.props.context.actions.setFlash("success", res.data);
         this.reloadProject();
       }).catch( err => {
         console.log(err);
-        this.setFlash("error", "An error occured while saving the project. Please try again.");
+        this.props.context.actions.setFlash("error", "An error occured while saving the project. Please try again.");
       });
   }
 
   addNewCanva = () => {
     const token = localStorage.getItem("token");
 
-    axios.post(`http://localhost:5000/canvas/new`, {
+    axios.post(`${process.env.REACT_APP_API_ENDPOINT}/canvas/new`, {
       projectId: this.state.projectId,
       template: 1
     }, {
       headers: { Authorization: `obladi ${token}`}
     }).then( res => {
       this.setState({
-        canvas: this.state.canvas.concat(res.data),
-        flash: true,
-        type: "success",
-        message: "Mockup added!"
-      })
+        canvas: this.state.canvas.concat(res.data)
+      });
+      this.props.context.actions.setFlash("success", "Mockup added");
     }).catch(err => {
-      this.setState({
-        flash: true,
-        type: "error",
-        message: "Something went wrong! Please save your changes and reload the page."
-      })
+      this.props.context.actions.setFlash("error", "Something went wrong! Please save your changes and reload the page.");
     })
 
   }
@@ -336,7 +330,7 @@ class Project extends Component {
 
     const token = localStorage.getItem("token");
 
-    axios.delete(`http://localhost:5000/canvas/delete/${canvaId}`, {
+    axios.delete(`${process.env.REACT_APP_API_ENDPOINT}/canvas/delete/${canvaId}`, {
         params: data,
         headers: { Authorization: `obladi ${token}`}
       }).then( res => {
@@ -354,14 +348,9 @@ class Project extends Component {
           canvas: filteredArray
         })
 
-        this.setFlash("success", "The mockup was successfully deleted!");
+        this.props.context.actions.setFlash("success", "The mockup was successfully deleted!");
       }).catch( err => {
         console.error(err);
-        // this.setState({
-        //   flash: true,
-        //   type: "error",
-        //   message: err.response.data
-        // })
       });
   }
 
@@ -369,7 +358,6 @@ class Project extends Component {
   render() {
     return(
       <DoubleWrapper>
-        <Flash flash={this.state.flash} type={this.state.type} message={this.state.message} closeFlash={this.closeFlash}/>
         <Wrapper>
           <Title>
             <h2>{this.state.name}</h2>
@@ -400,7 +388,8 @@ class Project extends Component {
               </select>
             </Filter>
           </FiltersContainer>
-          <SaveButton onClick={ () => this.saveProject()}>SAVE</SaveButton>
+          {/* <SaveButton onClick={ () => this.saveProject()}>SAVE</SaveButton> */}
+          <SaveButton onClick={this.tryingToSave}>SAVE</SaveButton>
           <Container>
             {this.displayCanvas()}
             <NewCanva onClick={() => this.addNewCanva()}>
@@ -409,6 +398,12 @@ class Project extends Component {
           </Container>
 
         </Wrapper>
+        <NeedPremiumModal
+          isOpen={this.state.modal === "needPremium" ? true : false}
+          closeModal={this.closeModal}
+          setFlash={this.props.context.actions.setFlash}
+          projectId={this.state.projectId}
+        />
       </DoubleWrapper>
     );
   }

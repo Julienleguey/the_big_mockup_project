@@ -34,46 +34,25 @@ function checkToken(req, res, next) {
 
   if (token) {
     console.log("INSIDE OF TOKEN");
-    // jwt.verify(token, config.secret, (err, decoded) => {
     jwt.verify(token, config.secret, (err, decoded) => {
       if (err) {
         console.log("TOKEN NOT VALID!!!!!!!")
-        // return res.json({
-        //   success: false,
-        //   message: 'Token is not valid'
-        // });
         next(err);
       } else {
         console.log("TOKEN VALID! WOUHOUUUUUUUUUUUUUUUUUUUUUUUUU!");
-        // req.decoded = decoded;
-        // req.currentUser = decoded.username;
         User.findOne({ where: {email: decoded.username}}).then( user => {
           console.log("USER FOUND HERE");
           req.currentUser = user;
           next();
         });
-        // next();
-        // console.log(decoded);
-        // next();
       }
     });
   } else {
     console.log("YA PAS DE TOKEN");
     next(err);
-    // return res.json({
-    //   success: false,
-    //   message: 'Auth token is not supplied'
-    // });
   }
   console.log("STILL THINGS HERE");
 };
-
-// function verified (req, res) {
-//   res.json({
-//     success: true,
-//     message: 'Index page'
-//   });
-// }
 
 // Defining an empty authenticateUser() middleware function in our routes module:
 function authenticateUser(req, res, next) {

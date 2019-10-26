@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import styled from "styled-components";
-import { Redirect, Route } from 'react-router-dom';
-import { Consumer } from './Context';
+import { Redirect, Route, withRouter } from 'react-router-dom';
 import axios from 'axios';
 import Templates from '../params/templates.js';
 
@@ -125,7 +124,7 @@ class Onboarding extends Component {
 
     const token = localStorage.getItem("token");
 
-    axios.post(`http://localhost:5000/projects/new`, {
+    axios.post(`${process.env.REACT_APP_API_ENDPOINT}/projects/new`, {
         name: this.state.name,
         os: this.state.os,
         device: this.state.device,
@@ -133,9 +132,7 @@ class Onboarding extends Component {
       }, {
       headers: { Authorization: `obladi ${token}`}
     }).then( res => {
-      console.log(res);
-      console.log(res.data.id);
-      window.location.replace("/projects");
+      this.props.history.push({pathname: `/project`, state: { userId: this.props.context.loggedUserId, projectId: res.data.ProjectId } });
     }).catch(err => {
       if (err.response.status === 500 ) {
         this.props.history.push("/error");
@@ -188,15 +185,10 @@ class Onboarding extends Component {
           {this.displayTemplates()}
           </Template>
           <Name>
-            <Consumer>
-              { context => {
-                return(
-                  <Form onSubmit={e => this.handleSubmit(e)}>
-                    <Input id="name" type="text" name="name" value={this.state.name} onChange={this.handleInput}/>
-                    <Button className="button" type="submit">Create project</Button>
-                  </Form>
-                )}}
-            </Consumer>
+            <Form onSubmit={e => this.handleSubmit(e)}>
+              <Input id="name" type="text" name="name" value={this.state.name} onChange={this.handleInput}/>
+              <Button className="button" type="submit">Create project</Button>
+            </Form>
           </Name>
         </DoubleWrapper>
       </Wrapper>
@@ -206,4 +198,4 @@ class Onboarding extends Component {
 
 
 
-export default Onboarding;
+export default withRouter(Onboarding);

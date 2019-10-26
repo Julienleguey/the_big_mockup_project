@@ -1,10 +1,8 @@
 import React from 'react';
-// import { UserContextBis } from './Context';
 import axios from 'axios';
 import styled from 'styled-components';
 
 // import components
-import Flash from './Flash';
 import ProjectCard from './ProjectCard';
 import RenameProjectModal from './RenameProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
@@ -57,9 +55,6 @@ class ProjectList extends React.Component {
   constructor() {
     super();
     this.state = {
-      flash: false,
-      type: "standard",
-      message: "",
       projects: [],
       modal: "",
       projectModal: "",
@@ -69,13 +64,14 @@ class ProjectList extends React.Component {
 
   componentWillMount = () => {
     this.loadProjects();
+    console.log(process.env.REACT_APP_API_ENDPOINT);
   }
 
   loadProjects = () => {
     const userId = this.props.loggedUserId;
     const token = localStorage.getItem('token');
 
-    axios.get(`http://localhost:5000/projects/list/${userId}`, {
+    axios.get(`${process.env.REACT_APP_API_ENDPOINT}/projects/list/${userId}`, {
         headers: { Authorization: `obladi ${token}`}
       }).then( response => {
         this.setState({
@@ -84,20 +80,6 @@ class ProjectList extends React.Component {
       }).catch(error => {
         console.error(error);
       });
-  }
-
-  setFlash = (type, msg) => {
-    this.setState({
-      flash: true,
-      type: type,
-      message: msg
-    })
-  }
-
-  closeFlash = () => {
-    this.setState({
-      flash: false
-    });
   }
 
   displayProjects = () => {
@@ -128,7 +110,6 @@ class ProjectList extends React.Component {
 
     return (
       <Wrapper>
-        <Flash flash={this.state.flash} type={this.state.type} message={this.state.message} closeFlash={this.closeFlash}/>
         <h1>My Projects</h1>
         <List id="list">
           <NewProject link href="/onboarding-project">
@@ -140,7 +121,7 @@ class ProjectList extends React.Component {
 
         <RenameProjectModal
           isOpen={this.state.modal === "renameProject" ? true : false}
-          setFlash={this.setFlash}
+          setFlash={this.props.context.actions.setFlash}
           reloadProjects={this.loadProjects}
           closeModal={this.closeModal}
           projectId={this.state.projectIdModal}
@@ -149,7 +130,7 @@ class ProjectList extends React.Component {
 
         <DuplicateProjectModal
           isOpen={this.state.modal === "duplicateProject" ? true : false}
-          setFlash={this.setFlash}
+          setFlash={this.props.context.actions.setFlash}
           reloadProjects={this.loadProjects}
           closeModal={this.closeModal}
           projectId={this.state.projectIdModal}
@@ -158,7 +139,7 @@ class ProjectList extends React.Component {
 
         <DeleteProjectModal
           isOpen={this.state.modal === "deleteProject" ? true : false}
-          setFlash={this.setFlash}
+          setFlash={this.props.context.actions.setFlash}
           reloadProjects={this.loadProjects}
           closeModal={this.closeModal}
           projectId={this.state.projectIdModal}

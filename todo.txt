@@ -151,3 +151,26 @@ https://itnext.io/implementing-json-web-tokens-passport-js-in-a-javascript-appli
 
 about jwt :
 https://medium.com/dev-bits/a-guide-for-adding-jwt-token-based-authentication-to-your-single-page-nodejs-applications-c403f7cf04f4
+
+
+about stripe :
+https://stripe.com/docs/payments/payment-intents/migration#migrating-to-payment-intents-with-synchronous-flows
+https://stripe.com/docs/payments/payment-intents/web-manual
+
+cards :
+4242 4242 4242 4242 => 3ds could work but is not used, payment okay
+3782 8224 6310 005 => 3ds doesn't work, payment okay
+
+3ds cards:
+https://stripe.com/docs/testing#regulatory-cards
+
+about env in react (while using create-react-app) :
+https://dev.to/jam3/managing-env-variables-for-provisional-builds-h37
+
+pro plan of theapplaunchpad :
+Pro download includes
+Additional 16 Devices & 9 Templates
+Upload your own Background image
+Save Project
+Use iPad Devices
+Export in high resolution PNG

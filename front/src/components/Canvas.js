@@ -635,6 +635,35 @@ methods to draw and write on the canvas
     }
   }
 
+  addWatermark = () => {
+    const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.fillRect(0, (canvaHeight/2-50), canvaWidth, (canvaHeight/2 + 50));
+
+    console.log(ctx);
+  }
+
+  tryToDownload = (index) => {
+    const token = localStorage.getItem("token");
+    axios.get(`${process.env.REACT_APP_API_ENDPOINT}/users/check_user_active`, {
+      headers: { Authorization: `obladi ${token}`}
+    }).then( res => {
+      console.log(res);
+      if (res.data.permission === true) {
+        console.log("it's okay, user can download");
+        this.downloadIt(index);
+      } else {
+        console.log("add watermark!");
+        this.addWatermark();
+        this.downloadIt(index);
+      }
+    }).catch( err => {
+      console.log("COULDN'T CHECK THE CREDENTIALS");
+      console.log(err);
+    })
+  }
+
   downloadIt = (index) => {
     const download = document.querySelector(`#a-${index}`);
     const image = document.querySelector(`#canva-${index}`).toDataURL('image/jpeg', 0.7).replace("image/jpg", "image/octet-stream");
@@ -844,7 +873,7 @@ methods to display the dropdown menus
               <p>Delete this mockup</p>
             </DeleteButton>
           : null}
-        <DlContainer id={`a-${this.props.index}`} className="button" download={`${this.props.device}_${this.props.index + 1}.jpg`} onClick={ () => {this.downloadIt(this.props.index)} }>
+        <DlContainer id={`a-${this.props.index}`} className="button" download={`${this.props.device}_${this.props.index + 1}.jpg`} onClick={ () => {this.tryToDownload(this.props.index)} }>
           <button className="dl-button">Download</button>
         </DlContainer>
       </Wrapper>

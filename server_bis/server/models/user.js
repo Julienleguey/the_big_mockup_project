@@ -21,6 +21,14 @@ module.exports = (sequelize, DataTypes) => {
         }
       }
     },
+    premiumUntil: {
+      type: DataTypes.DATE
+    },
+    status: {
+      type: DataTypes.ENUM,
+      values: ['active', 'pre_suspended', 'suspended'],
+      defaultValue: "suspended"
+    },
   }, {});
   User.associate = function(models) {
     // associations can be defined here

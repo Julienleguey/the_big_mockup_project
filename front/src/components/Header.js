@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Consumer } from './Context';
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
@@ -25,40 +24,31 @@ const Right = styled.div`
   display: flex;
 `;
 
-// Header displayed through all the app
-// contains a button to redirect to the default page and a signin/signout button
-const Header = () => (
-
-  <Wrapper>
-    <Left>
-      <Link to="/">Home</Link>
-      <Link to="/projects">Projects</Link>
-    </Left>
-    <Middle>
-      <Consumer>
-        { context => (
-          <span>Welcome{context.isLogged ? ` ${context.firstName} ${context.lastName}` : ""}!</span>
-        )}
-      </Consumer>
-    </Middle>
-    <Right>
-      <Consumer>
-        { context => (
+const Header = (props) => {
+  const { context } = props;
+  return (
+    <Wrapper>
+      <Left>
+        <Link to="/">Home</Link>
+        <Link to="/projects">Projects</Link>
+      </Left>
+      <Middle>
+        <span>Welcome{context.isLogged ? ` ${context.firstName} ${context.lastName}` : ""}!</span>
+      </Middle>
+      <Right>
+        <Link to="/pricing">Pricing</Link>
           <nav>
             { context.isLogged ?
-            <Link className="signout" to="/signout">Sign Out</Link>
-            :
-            <>
-            <Link className="signin" to="/signin">Sign In</Link>
-            <Link className="signup" to="/signup">Sign Up</Link>
-            </>
-          }
+              <Link to="/signout">Sign Out</Link>
+              :
+              <>
+              <Link to="/login">Login</Link>
+              </>
+            }
           </nav>
-        )}
-      </Consumer>
-    </Right>
-  </Wrapper>
-
-);
+      </Right>
+    </Wrapper>
+  )
+};
 
 export default Header;

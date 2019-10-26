@@ -30,6 +30,10 @@ const Wrapper = styled.div`
     background-color: red;
     color: black;
   }
+
+  &.warning {
+    background-color: pink;
+  }
 `;
 
 const Message = styled.div`
@@ -56,19 +60,16 @@ const CloseContainer = styled.div`
   }
 `;
 
-class Flash extends Component {
+class FlashAll extends Component {
 
-  constructor() {
-    super();
-    this.state = {
-      plop: ""
-    };
-  }
+  state = {
+    plop: ""
+  };
 
   componentDidMount() {
     this.setType();
 
-    if (this.props.flash === true) {
+    if (this.props.context.flashOpen === true) {
       this.openFlash();
     } else {
       this.closeFlash();
@@ -78,7 +79,7 @@ class Flash extends Component {
   componentDidUpdate() {
     this.setType();
 
-    if (this.props.flash === true) {
+    if (this.props.context.flashOpen === true) {
       this.openFlash();
     } else {
       this.closeFlash();
@@ -95,8 +96,8 @@ class Flash extends Component {
 
   setType = () => {
     const main = document.querySelector("#main");
-    main.classList.remove("standard", "success", "error");
-    main.classList.add(this.props.type);
+    main.classList.remove("standard", "success", "error", "warning");
+    main.classList.add(this.props.context.flashType);
   }
 
 
@@ -106,9 +107,9 @@ class Flash extends Component {
     return(
       <Wrapper id="main">
         <Message>
-          <p>{this.props.message}</p>
+          <p>{this.props.context.flashMsg}</p>
         </Message>
-        <CloseContainer onClick={() => this.props.closeFlash()}>
+        <CloseContainer onClick={() => this.props.context.actions.closeFlash()}>
           <img src={close} alt="close the flash" />
         </CloseContainer>
       </Wrapper>
@@ -116,4 +117,4 @@ class Flash extends Component {
   }
 }
 
-export default Flash;
+export default FlashAll;

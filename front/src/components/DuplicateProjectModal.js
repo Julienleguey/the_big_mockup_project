@@ -21,7 +21,7 @@ const DuplicateProjectModal = props => {
 
     const token = localStorage.getItem("token");
 
-    axios.post(`http://localhost:5000/projects/duplicate/${props.projectId}`, {}, {
+    axios.post(`${process.env.REACT_APP_API_ENDPOINT}/projects/duplicate/${props.projectId}`, {}, {
         headers: { Authorization: `obladi ${token}`}
       }).then( res => {
         console.log(res);

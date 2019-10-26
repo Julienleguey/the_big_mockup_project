@@ -41,7 +41,7 @@ const RenameProjectModal = props => {
 
     const token = localStorage.getItem("token");
 
-    axios.put(`http://localhost:5000/projects/rename/${props.projectId}`, {
+    axios.put(`${process.env.REACT_APP_API_ENDPOINT}/projects/rename/${props.projectId}`, {
       name: name
     }, {
         headers: { Authorization: `obladi ${token}`}
