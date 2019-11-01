@@ -69,7 +69,8 @@ class SignContainer extends Component {
   login = (e, emailAddress, password) => {
     e.preventDefault();
     const { context } = this.props;
-    context.actions.login(emailAddress, password, true, this.state.prevPage).then( user => {
+    // context.actions.login(emailAddress, password, true, this.state.prevPage).then( user => {
+    context.actions.login(emailAddress, password).then( user => {
       console.log(user);
       console.log(context);
       // soit le user s'est logué sur la page de login et on le renvoie sur la page d'accueil

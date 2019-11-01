@@ -85,7 +85,7 @@ const DeleteButton = styled.div`
   }
 `;
 
-const DlContainer = styled.a`
+const DlContainer = styled.div`
   display: flex;
   margin: 20px 0;
   justify-content: center;
@@ -171,33 +171,52 @@ let translateY = 0;
 
 class Canvas extends Component {
 
-  constructor() {
-    super();
-    this.state = {
-      isDevice: false,
-      deviceWidthStart: 0,
-      deviceHeightStart: 0,
-      deviceWidth: 0,
-      deviceHeight: 0,
-      screenshotWidthStart: 0,
-      screenshotHeightStart: 0,
-      screenshotWidth: 0,
-      screenshotHeight: 0
-    };
+  state = {
+    isDevice: false,
+    deviceWidthStart: 0,
+    deviceHeightStart: 0,
+    deviceWidth: 0,
+    deviceHeight: 0,
+    screenshotWidthStart: 0,
+    screenshotHeightStart: 0,
+    screenshotWidth: 0,
+    screenshotHeight: 0
   }
 
 /****************
 lifecycle events
 ****************/
 
-  componentDidMount = () => {
-    this.createCanvas();
+  componentDidMount = (prevProps) => {
+    console.log("component did mount");
+    this.createCanvas(true, prevProps);
+    // this.createCanvasFirst();
   }
 
   componentDidUpdate = (prevProps) => {
-    // if (prevProps.canva !== this.props.canva) {
-      this.createCanvas();
-    // }
+    console.log("component did update");
+    if (prevProps.canva !== this.props.canva) {
+      this.createCanvas(false, prevProps);
+      // this.clearCanvas();
+
+      console.log('Rrow update diff:');
+
+      // log the diff between prevprops and props => https://gist.github.com/albertorestifo/83877c3e4c81066a592a47c4dcf6753b
+      const now = Object.entries(this.props);
+      const added = now.filter(([key, val]) => {
+        if (prevProps[key] === undefined) return true;
+        if (prevProps[key] !== val) {
+          console.log(`${key}
+            - ${JSON.stringify(val)}
+            + ${JSON.stringify(prevProps[key])}`);
+        }
+        return false;
+      });
+      added.forEach(([key, val]) => console.log(`${key}
+            + ${JSON.stringify(val)}`));
+
+      // end of the log
+    }
   }
 
   addDeviceCoordinatesToState = () => {
@@ -275,6 +294,7 @@ methods to calculate meta-datas
 *******************************/
   // 1. définir le contexte : device, caption, rotate
   getContext = () => {
+    console.log("INSIDE GET CONTEXT");
     device = this.props.device;
     caption = Templates[this.props.canva.template].caption;
     isDevice = Templates[this.props.canva.template].device;
@@ -560,6 +580,11 @@ methods to draw and write on the canvas
     canvasToDestroy.innerHTML = "";
   }
 
+  clearCanvas = ctx => {
+    console.log(canvaWidth, canvaHeight);
+    ctx.clearRect(0, 0, canvaWidth, canvaHeight);
+  }
+
   createEmptyCanvas = () => {
     // selecting the canvas parent
     const parentCanvas = document.querySelector(`#canva-container-${this.props.index}`);
@@ -587,9 +612,11 @@ methods to draw and write on the canvas
   }
 
   addCanvasBackground = (ctx) => {
-    // creating the background
-    ctx.fillStyle = this.props.canva.backgroundColor;
-    ctx.fillRect(0, 0, canvaWidth, canvaHeight);
+      // creating the background
+      ctx.fillStyle = this.props.canva.backgroundColor;
+      ctx.fillRect(0, 0, canvaWidth, canvaHeight);
+      console.log("1");
+      return ctx;
   }
 
   writeText = (ctx, startHeight, fontColor, font, fontSize, content, lineToLine) => {
@@ -605,43 +632,76 @@ methods to draw and write on the canvas
       ctx.fillText(content[i], (canvaWidth + gap)/2, heightToDrawText, maxWidthText);
       // ajout d'un interligne line/line
       heightToDrawText += (lineToLine + fontSize);
+      console.log("2 (write text)");
     }
   }
 
-  addCanvasScreenshot = (ctx) => {
-      const reader = new FileReader();
-      const screenshot = new Image();
+  addCanvasScreenshot = (ctx, prevProps) => {
+    const promise = new Promise( resolve => {
+      // if (!prevProps || prevProps.canva.screenshot !== this.props.canva.screenshot) {
+        const reader = new FileReader();
+        const screenshot = new Image();
 
-      reader.onload = function(e) {
-        screenshot.src = e.target.result;
-      }
-
-      if (this.props.canva.screenshot) {
-        reader.readAsDataURL(this.props.canva.screenshot);
-        screenshot.onload = () => {
-          ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
-          this.addCanvasDevice(ctx);
+        reader.onload = function(e) {
+          screenshot.src = e.target.result;
         }
-      }
+
+        if (this.props.canva.screenshot) {
+          reader.readAsDataURL(this.props.canva.screenshot);
+          screenshot.onload = () => {
+            ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
+            // this.addCanvasDevice(ctx);
+            console.log("3");
+            resolve("screenshot ajouté");
+          }
+        } else {
+          resolve("on n'a pas dessiné le screenshot");
+        }
+      // }
+      // else {
+      //   resolve("pas de nouveau screenshot, pas de dessin");
+      // }
+    })
+    return promise;
   }
 
-  addCanvasDevice = (ctx) => {
-    if (this.state.isDevice) {
-      const deviceImg = new Image();
-      deviceImg.src = require(`../mockups/${this.props.device}.png`);
-      deviceImg.onload = () => {
-        ctx.drawImage(deviceImg, this.state.deviceWidthStart, this.state.deviceHeightStart, this.state.deviceWidth, this.state.deviceHeight);
-      }
-    }
+  addCanvasDevice = (ctx, prevProps) => {
+    const promise = new Promise( resolve => {
+      // if (!prevProps || prevProps.canva.screenshot !== this.props.canva.screenshot) {
+        if (this.state.isDevice) {
+          const deviceImg = new Image();
+          deviceImg.src = require(`../mockups/${this.props.device}.png`);
+          deviceImg.onload = () => {
+            ctx.drawImage(deviceImg, this.state.deviceWidthStart, this.state.deviceHeightStart, this.state.deviceWidth, this.state.deviceHeight);
+            console.log("4");
+            resolve("device ajouté");
+          }
+        } else {
+          resolve("on n'a pas dessiné le device");
+        }
+      // }
+      // else {
+      //   resolve("pas de nouveau device, pas de dessin");
+      // }
+
+    })
+    return promise;
   }
 
   addWatermark = () => {
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+    ctx.save();
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-    ctx.fillRect(0, (canvaHeight/2-50), canvaWidth, (canvaHeight/2 + 50));
+    console.log(canvaHeight/2-50, canvaHeight/2+50)
+    ctx.fillRect(0, (canvaHeight/2-200), canvaWidth, 400);
 
-    console.log(ctx);
+    ctx.fillStyle = "black";
+    ctx.font = `100px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText("The Big Mockup Project", canvaWidth/2, canvaHeight/2, canvaWidth);
+
+    ctx.restore();
   }
 
   tryToDownload = (index) => {
@@ -665,9 +725,13 @@ methods to draw and write on the canvas
   }
 
   downloadIt = (index) => {
-    const download = document.querySelector(`#a-${index}`);
+    const link = document.createElement('a');
+    link.setAttribute('download', `${this.props.device}_${this.props.index + 1}.jpg`);
     const image = document.querySelector(`#canva-${index}`).toDataURL('image/jpeg', 0.7).replace("image/jpg", "image/octet-stream");
-    download.setAttribute("href", image);
+    link.setAttribute('href', image);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
 
@@ -675,19 +739,120 @@ methods to draw and write on the canvas
 the finale method where everything is played
 ********************************************/
 
-  createCanvas = () => {
+  // createCanvas = (first) => {
+  //   console.log("create canvas is played");
+  //   // destroying and creating the empty canva, must be first and in this order
+  //   this.getContext();
+  //   this.getCanvaDatas();
+  //   // this.destroyPrevCanvas();
+  //   if (first) {
+  //     this.createEmptyCanvas();
+  //   }
+  //
+  //   const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+  //   ctx.save();
+  //   if (!first) {
+  //     this.clearCanvas(ctx);
+  //   }
+  //
+  //
+  //   // ctx.mozImageSmoothingEnabled = false;
+  //   // ctx.webkitImageSmoothingEnabled = false;
+  //   // ctx.msImageSmoothingEnabled = false;
+  //   // ctx.imageSmoothingEnabled = false;
+  //
+  //   // getting meta-datas
+  //   this.getMargins();
+  //   this.defineText(ctx);
+  //   this.getTextDatas();
+  //   this.getTextSize();
+  //   this.getMaxDimensions();
+  //   this.redoDeviceForCanvas();
+  //   this.redoScreenshotForCanvas();
+  //   this.getElementSize();
+  //   this.getTextStart();
+  //   this.getTitleStart();
+  //   this.getSubtitleStart();
+  //   this.getIntermediaryMargin();
+  //   this.getSpaceFilled();
+  //   this.getTranslations();
+  //
+  //   // drawing the background
+  //   this.addCanvasBackground(ctx);
+  //
+  //   // drawing the text
+  //   if (caption !== "none") {
+  //     this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
+  //     this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
+  //   }
+  //
+  //   // rotating if needed
+  //   if (isRotate) {
+  //     this.getRotateTranslations();
+  //     ctx.translate(translateX, translateY);
+  //     ctx.rotate(rotRadians);
+  //   } else {
+  //     // translation of the element (device and screenshot)
+  //     ctx.translate(translateX, translateY);
+  //   }
+  //
+  //   // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is drawn)
+  //   // otherwise it's played here
+  //   if (this.props.canva.screenshotURL) {
+  //     this.addCanvasScreenshot(ctx);
+  //   } else {
+  //     this.addCanvasDevice(ctx);
+  //   }
+  //
+  //   console.log("5");
+  //   ctx.restore();
+  //   // this.sendCanvasDatasToProject();
+  //
+  // }
+
+  // createCanvasFirst = () => {
+  //   console.log("create canvas FIRST is played");
+  //   this.getContext();
+  //   this.getCanvaDatas();
+  //   this.createEmptyCanvas();
+  //
+  //   const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+  //
+  //   // getting meta-datas
+  //   this.getMargins();
+  //   this.defineText(ctx);
+  //   this.getTextDatas();
+  //   this.getTextSize();
+  //   this.getMaxDimensions();
+  //   this.redoDeviceForCanvas();
+  //   this.redoScreenshotForCanvas();
+  //   this.getElementSize();
+  //   this.getTextStart();
+  //   this.getTitleStart();
+  //   this.getSubtitleStart();
+  //   this.getIntermediaryMargin();
+  //   this.getSpaceFilled();
+  //   this.getTranslations();
+  // }
+
+  createCanvas = (first, prevProps) => {
+    console.log("create canvas is played");
+    console.log(first, prevProps);
+
     // destroying and creating the empty canva, must be first and in this order
     this.getContext();
     this.getCanvaDatas();
     this.destroyPrevCanvas();
-    this.createEmptyCanvas();
+    // if (first) {
+      this.createEmptyCanvas();
+    // }
+
 
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
-
-    // ctx.mozImageSmoothingEnabled = false;
-    // ctx.webkitImageSmoothingEnabled = false;
-    // ctx.msImageSmoothingEnabled = false;
-    // ctx.imageSmoothingEnabled = false;
+    ctx.save();
+    // if (!first) {
+    //   this.clearCanvas(ctx);
+    // }
 
     // getting meta-datas
     this.getMargins();
@@ -705,35 +870,48 @@ the finale method where everything is played
     this.getSpaceFilled();
     this.getTranslations();
 
-    // drawing the background
-    this.addCanvasBackground(ctx);
+    // if (!first) {
 
-    // drawing the text
-    if (caption !== "none") {
-      this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
-      this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
-    }
+      // drawing the background
+      this.addCanvasBackground(ctx);
 
-    // rotating if needed
-    if (isRotate) {
-      this.getRotateTranslations();
-      ctx.translate(translateX, translateY);
-      ctx.rotate(rotRadians);
-    } else {
-      // translation of the element (device and screenshot)
-      ctx.translate(translateX, translateY);
-    }
+      // drawing the text
+      if (caption !== "none") {
+        this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
+        this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
+      }
 
-    // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is drawn)
-    // otherwise it's played here
-    if (this.props.canva.screenshotURL) {
-      this.addCanvasScreenshot(ctx);
-    } else {
-      this.addCanvasDevice(ctx);
-    }
+      // rotating if needed
+      if (isRotate) {
+        this.getRotateTranslations();
+        ctx.translate(translateX, translateY);
+        ctx.rotate(rotRadians);
+      } else {
+        // translation of the element (device and screenshot)
+        ctx.translate(translateX, translateY);
+      }
 
-    // this.sendCanvasDatasToProject();
+      this.test(ctx, prevProps).then( res => {
+        console.log(res);
+        this.testBis(ctx, prevProps).then( res => {
+          console.log(res);
+          console.log("5");
+          ctx.restore();
+        })
+      });
 
+    // }
+
+  }
+
+  test = async (ctx, prevProps) => {
+    const response = await this.addCanvasScreenshot(ctx, prevProps);
+    return response;
+  }
+
+  testBis = async (ctx, prevProps) => {
+    const response = await this.addCanvasDevice(ctx, prevProps);
+    return response;
   }
 
 /*************************************
@@ -873,7 +1051,11 @@ methods to display the dropdown menus
               <p>Delete this mockup</p>
             </DeleteButton>
           : null}
-        <DlContainer id={`a-${this.props.index}`} className="button" download={`${this.props.device}_${this.props.index + 1}.jpg`} onClick={ () => {this.tryToDownload(this.props.index)} }>
+        <DlContainer
+          id={`a-${this.props.index}`}
+          className="button"
+          onClick={ () => this.tryToDownload(this.props.index) }
+        >
           <button className="dl-button">Download</button>
         </DlContainer>
       </Wrapper>

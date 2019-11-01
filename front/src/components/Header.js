@@ -45,6 +45,7 @@ const Header = (props) => {
               <Link to="/login">Login</Link>
               </>
             }
+            <Link to="/profile">Profile</Link>
           </nav>
       </Right>
     </Wrapper>

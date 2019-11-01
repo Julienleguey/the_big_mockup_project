@@ -37,9 +37,11 @@ export class Provider extends Component {
 
   // used only when the app is launched
   signWithToken = async (token) => {
+    console.log("INSIDE SIGN WITH TOKEN")
     await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/users/signwithtoken`, {
         headers: { Authorization: `obladi ${token}`}
       }).then( res => {
+        console.log(res);
         this.setState({
           isLogged: true,
           loggedUserId: res.data.user.id,
@@ -56,12 +58,17 @@ export class Provider extends Component {
 
   // login to create a token and put it in localStorage ("signup" and "signin" actions)
   login = async (emailAddress, password) => {
+    console.log("inside method login of context");
+    console.log("emailAddress: ", emailAddress);
+    console.log("password: ", password);
     const user = await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/users/login`, {
       auth: {
         username: emailAddress,
         password: password
       }
     }).then( res => {
+      console.log("res in login");
+      console.log(res);
       this.setState({
         isLogged: true,
         loggedUserId: res.data.user.id,
@@ -114,6 +121,23 @@ export class Provider extends Component {
     });
   }
 
+  updateUserInfo = (newInfos) => {
+    const token = localStorage.getItem('token');
+    axios.put(`${process.env.REACT_APP_API_ENDPOINT}/users/update_profile/${this.state.loggedUserId}`, newInfos, {
+      headers: { Authorization: `obladi ${token}`}
+    }).then( res => {
+      console.log(res);
+      this.setState({
+        emailAddress: res.data.email,
+        firstName: res.data.firstName,
+        lastName: res.data.lastName
+      });
+      this.setFlash("success", "The profile's infos were succesfully updated!");
+    }).catch( err => {
+      console.log(err);
+    })
+  }
+
   // method to open the flash
   setFlash = (type, msg) => {
     this.setState({
@@ -152,6 +176,7 @@ export class Provider extends Component {
             login: this.login,
             setRedirect: this.setRedirect,
             updateStatus: this.updateStatus,
+            updateUserInfo: this.updateUserInfo,
             setFlash: this.setFlash,
             closeFlash: this.closeFlash
           }

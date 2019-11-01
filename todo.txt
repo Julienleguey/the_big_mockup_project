@@ -167,6 +167,9 @@ https://stripe.com/docs/testing#regulatory-cards
 about env in react (while using create-react-app) :
 https://dev.to/jam3/managing-env-variables-for-provisional-builds-h37
 
+about forgotten password:
+https://itnext.io/password-reset-emails-in-your-react-app-made-easy-with-nodemailer-bb27968310d7
+
 pro plan of theapplaunchpad :
 Pro download includes
 Additional 16 Devices & 9 Templates

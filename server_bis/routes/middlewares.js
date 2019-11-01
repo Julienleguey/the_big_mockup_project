@@ -56,6 +56,7 @@ function checkToken(req, res, next) {
 
 // Defining an empty authenticateUser() middleware function in our routes module:
 function authenticateUser(req, res, next) {
+  console.log("email: ", auth(req).name);
   User.findOne({ where: {email: auth(req).name}}).then((user) => {
     // If the user is found:
     if (user) {
@@ -127,9 +128,25 @@ function projectOwner(req, res, next) {
   });
 }
 
+function checkAdmin(req, res, next) {
+  console.log("CHECK ADMIN");
+  console.log(req.currentUser.email);
+  console.log(process.env.ADMIN);
+  if (req.currentUser.email === process.env.ADMIN) {
+    console.log("IT'S THE SAME");
+    next();
+  } else {
+    console.log("NOT THE ADMIN");
+    err = new Error('The authenticated user is not admin and is not allowed to do this!');
+    err.status = 403;
+    next(err);
+  }
+}
+
 module.exports = {
     authenticateUser: authenticateUser,
     profileOwner: profileOwner,
     projectOwner: projectOwner,
-    checkToken: checkToken
+    checkToken: checkToken,
+    checkAdmin: checkAdmin
 }

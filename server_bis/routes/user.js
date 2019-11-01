@@ -5,10 +5,12 @@ const checkToken = require("./middlewares").checkToken;
 const profileOwner = require("./middlewares").profileOwner;
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const User = require("../server/models").User;
 const Project = require("../server/models").Project;
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
+const resetPassword = require("./helpers/mailer").resetPassword;
 
 // adding bcrypt to hash the passwords
 const bcrypt = require('bcryptjs');
@@ -39,7 +41,7 @@ function createUserFolder(user) {
 User routes
 *************/
 router.get(`/signwithtoken`, checkToken, (req, res) => {
-  User.findOne({ where: { email: "julien@example.com" } }).then( (user) => {
+  User.findOne({ where: { id: req.currentUser.id } }).then( (user) => {
     res.json({
       user: user,
       success: true,
@@ -76,28 +78,6 @@ router.get('/login', authenticateUser, function(req, res, next) {
       });
     }
 });
-
-// // get all the users
-// // FOR DEVELOPMENT PURPOSES ONLY
-// router.get('/all', function(req, res, next) {
-//   User.findAll({}).then((users) => {
-//     res.json(users);
-//   });
-// })
-
-// get all the users and their projects
-// FOR DEVELOPMENT PURPOSES ONLY
-router.get('/all', function(req, res, next) {
-  User.findAll({
-    include: [
-      {
-        model: Project
-      }
-    ]
-  }).then((users) => {
-    res.json(users);
-  });
-})
 
 
 // create user
@@ -163,44 +143,129 @@ router.post("/testing/:id", checkToken, profileOwner, function(req, res) {
     }
   }).then( () => {
     res.send(200);
+  }).catch( () => {
+    res.sendStatus(403);
   })
 })
 
 
-// update one user PAS FINI, PAS ENCORE DE PAGE POUR MODIFIER LE USER
-router.put("/:id", checkToken, profileOwner, function(req, res, next){
+// update one user infos
+router.put("/update_profile/:id", checkToken, profileOwner, function(req, res, next){
   User.findOne({ where: { id: req.params.id } }).then(function(user) {
+    console.log(req.body);
     if (user) {
       console.log("user fouuuuund!");
       return user.update(req.body);
     } else {
       console.log("user not fouuuuund T.T");
-      res.status(404).render("books/error", {
-        title: "Server Error",
-        message: "Sorry! There was an unexpected error on the server."
-      });
+      res.sentStatus(404);
     }
-  }).then(function(){
-    res.redirect("/users");
+  }).then( user => {
+    res.json(user);
   }).catch(function(err){
     console.log("woups 1");
-    // if(err.name === "SequelizeValidationError"){
-    //   const book = Book.build(req.body);
-    //   book.id = req.params.id;
-    //
-    //   res.render("books/update-book", {
-    //     book: book,
-    //     title: "Update Book",
-    //     errors: err.errors
-    //   });
-    // } else {
-    //   throw err;
-    // }
-  }).catch(function(err){
-    // res.send(500);
-    console.log("woups 2");
+    res.sendStatus(500);
   });
 });
+
+
+// update the password of the user
+router.put("/update_password/:id", authenticateUser, profileOwner, function(req, res) {
+  console.log("INSIDE UPDATE PASSWORD");
+
+  // Hashing the new password
+  const myPlaintextPassword = req.body.newPassword;
+  const hashedPassword = bcrypt.hashSync(myPlaintextPassword, salt);
+
+  User.findOne({ where: { id: req.params.id } }).then(function(user) {
+    console.log(req.body);
+    if (user) {
+      console.log("user fouuuuund!");
+      return user.update({password: hashedPassword});
+    } else {
+      console.log("user not fouuuuund T.T");
+      res.sentStatus(404);
+    }
+  }).then( user => {
+    console.log("password updated, sending a response");
+    res.json(user);
+  }).catch(function(err){
+    console.log("woups 1");
+    res.sendStatus(500);
+  });
+})
+
+// reset the password of the user (because the user forgot it)
+router.put("/reset_password", (req, res) => {
+  console.log(req.body);
+
+  const myPlaintextPassword = req.body.newPassword;
+  const hashedPassword = bcrypt.hashSync(myPlaintextPassword, salt);
+
+  User.findOne({ where: { resetPasswordToken: req.body.resetPasswordToken } }).then( user => {
+    if (user) {
+      if (new Date(user.resetPasswordExpires) < new Date()) {
+        console.log("c'est bon, c'est pas trop vieux");
+        user.update({password: hashedPassword});
+        res.json(user);
+      } else {
+        console.log("token trop vieux");
+        res.sendStatus(500);
+      }
+    } else {
+      res.sendStatus(404);
+    }
+  }).catch( () => {
+    res.sendStatus(500);
+  })
+})
+
+// create and send a reset token
+router.post("/forgot_password", function(req, res) {
+  console.log("INSIDE FORGOT PASSWORD");
+  console.log(req.body);
+
+  User.findOne({ where: { email: req.body.email } }).then( user => {
+    if (user) {
+      const token = crypto.randomBytes(20).toString('hex');
+      return user.update({
+        resetPasswordToken: token,
+        resetPasswordExpires: Date.now() + 36000
+      });
+    } else {
+      throw err;
+    }
+  }).then( user => {
+    console.log("user: ", user);
+    resetPassword(user.email, user.resetPasswordToken);
+    res.sendStatus(200);
+  }).catch( () => {
+    res.sendStatus(500);
+  })
+
+})
+
+
+// check the reset token
+router.get("/check_reset_token/:resetPasswordToken", (req, res) => {
+  console.log(req.params.resetPasswordToken);
+  User.findOne({ where: { resetPasswordToken: req.params.resetPasswordToken } }).then( user => {
+    if (user) {
+      if (new Date(user.resetPasswordExpires) < new Date()) {
+        console.log("c'est bon, c'est pas trop vieux");
+        res.json({email: user.email});
+      } else {
+        console.log("token trop vieux");
+        res.sendStatus(500);
+      }
+    } else {
+      res.sendStatus(404);
+    }
+  }).catch( () => {
+    res.sendStatus(500);
+  })
+})
+
 
 //204 - Deletes a user and returns no content
 // WARNING: THIS IS FOR DEVELOPMENT PURPOSES! AUTH AND OWNERSHIP SHOULD BE REQUIRED FOR THAT SORT OF ACTION!!!

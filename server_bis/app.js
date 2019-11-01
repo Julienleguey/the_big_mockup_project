@@ -15,6 +15,7 @@ const userRoutes = require("./routes/user");
 const projectRoutes = require("./routes/project");
 const canvaRoutes = require("./routes/canva");
 const stripeRoutes = require("./routes/stripe");
+const adminRoutes = require("./routes/admin");
 
 const preSuspendUsers = require("./jobs/jobs").preSuspendUsers;
 const suspendUsers = require("./jobs/jobs").suspendUsers;
@@ -59,6 +60,7 @@ app.use('/users', userRoutes);
 app.use('/projects', projectRoutes);
 app.use('/canvas', canvaRoutes);
 app.use('/stripe', stripeRoutes);
+app.use('/admin', adminRoutes);
 
 // setup a friendly greeting for the root route
 app.get('/', (req, res) => {
@@ -100,6 +102,6 @@ suspendUsers();
 
 
 // start listening on our port
-const server = app.listen(app.get('port'), () => {
+const server = app.listen(app.get('port'), '0.0.0.0', () => {
   console.log(`Express server is listening on port ${server.address().port}`);
 });

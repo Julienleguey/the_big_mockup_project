@@ -25,9 +25,17 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE
     },
     status: {
-      type: DataTypes.ENUM,
-      values: ['active', 'pre_suspended', 'suspended'],
+      type: DataTypes.STRING,
+      validate: {
+        isIn: [['active', 'testing', 'pre_suspended', 'suspended']],
+      },
       defaultValue: "suspended"
+    },
+    resetPasswordToken: {
+      type: DataTypes.STRING
+    },
+    resetPasswordExpires: {
+      type: DataTypes.DATE
     },
   }, {});
   User.associate = function(models) {

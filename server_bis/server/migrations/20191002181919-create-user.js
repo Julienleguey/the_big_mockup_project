@@ -40,9 +40,17 @@ module.exports = {
         type: Sequelize.DATE
       },
       status: {
-        type: Sequelize.ENUM,
-        values: ['active', 'pre_suspended', 'suspended'],
+        type: Sequelize.STRING,
+        validate: {
+          isIn: [['active', 'testing', 'pre_suspended', 'suspended']]
+        },
         defaultValue: "suspended"
+      },
+      resetPasswordToken: {
+        type: Sequelize.STRING
+      },
+      resetPasswordExpires: {
+        type: Sequelize.DATE
       },
       createdAt: {
         allowNull: false,

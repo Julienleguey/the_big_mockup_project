@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Link, withRouter } from 'react-router-dom';
 import styled from "styled-components";
+import axios from "axios";
 
 class SignIn extends Component {
 
@@ -44,6 +45,9 @@ class SignIn extends Component {
                 <button className="button button-secondary" onClick={this.props.cancel}>Cancel</button>
               </div>
             </form>
+            <div>
+              <Link to="/forgot_password">I forgot my password</Link>
+            </div>
           </div>
         </div>
       </div>
