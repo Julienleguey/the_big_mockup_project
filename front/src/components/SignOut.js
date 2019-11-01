@@ -1,14 +1,11 @@
 import React from 'react';
-import { Consumer } from './Context';
+import { Redirect } from 'react-router-dom';
 
-// doesn't return a page, just here to sign out the user
-const SignOut = () => (
-  <Consumer>
-    { context => {
-      // when the user signs out, the signout method from context is called (cf /Context/index.js)
-      context.actions.signout();
-    }}
-  </Consumer>
-);
+const SignOut = ({context}) => {
+  context.actions.signout();
+  return (
+    <Redirect to="/" />
+  );
+};
 
 export default SignOut;

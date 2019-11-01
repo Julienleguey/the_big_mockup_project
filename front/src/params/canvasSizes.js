@@ -40,3 +40,7 @@ export default {
     height: 3274
   }
 }
+
+// la taille des canvas android ayant été fixée arbitrairement, elle est n'est pet-être pas idéale pour une disposition harmonieuse des screenshots sans device
+// il faudrait peut-être leur donner des proportions correspondantes à celle des screenshots attendus
+// ça implique de changer aussi le css dans Canvas.js

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
 
 import CanvasSizes from '../params/canvasSizes.js';
 import DeviceSize from '../params/deviceSize.js';
@@ -72,7 +73,19 @@ const TextArea = styled.textarea`
   resize: vertical;
 `;
 
-const DlContainer = styled.a`
+const DeleteButton = styled.div`
+  display: flex;
+  width: 50%;
+  height: 30px;
+  margin: 0 auto;
+  border: 1px solid red;
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const DlContainer = styled.div`
   display: flex;
   margin: 20px 0;
   justify-content: center;
@@ -87,26 +100,40 @@ const DlContainer = styled.a`
 
 const colorsList = ["#000000", "#c0c0c0", "#808080", "#ffffff", "#800000", "#ff0000", "#800080", "#ff00ff", "#008000", "#00ff00", "#808000", "#ffff00", "#000080", "#0000ff", "#008080", "#00ffff"]
 const fontsList = ["Arial", "Arial Black", "Courier", "Garamond", "Georgia", "Helvetica", "Impact", "Tahoma", "Times", "Trebuchet MS", "Verdana"];
+const rLMarginRate = 0.05;
+const tBMarginRate = 0.05;
+const resizeNoDevice = 0.8;
+let rotRadians = 0;
 
 let device = "";
-let number = "";
+let caption = "";
+let isRotate = "";
+let isDevice = false;
+let isFull = false;
 
 let canvaWidth = 0;
 let canvaHeight = 0;
-let marginSides = 0;
-let maxWidth = 0;
 
-let deviceWidth = 0;
-let deviceHeight = 0;
+let rLMargin = 0;
+let tBMargin = 0;
+let sideMargin = 0;
+let maxWidthText = 0;
+
+let maxWidth = 0;
+let maxHeight = 0;
+
 let deviceWidthStart = 0;
 let deviceHeightStart = 0;
-let deviceWidthEnd = 0;
-let deviceHeightEnd = 0;
+let deviceWidth = 0;
+let deviceHeight = 0;
+let allDevices = {};
+
+let resizeWithDevice = 0;
 
 let screenshotWidthStart = 0;
 let screenshotHeightStart = 0;
-let screenshotWidthEnd = 0;
-let screenshotHeightEnd = 0;
+let screenshotWidth = 0;
+let screenshotHeight = 0;
 
 let textStart = 0;
 let titleStart = 0;
@@ -121,165 +148,196 @@ let subtitleSize = 0;
 let subtitleToSubtitle = 0;
 let spacingToDevice = 0;
 let spacingToText = 0;
+let paddingTop = 0;
 let spaceFilledByTitle = 0;
 let spaceFilledBySubtitle = 0;
+let spaceFilledByText = 0;
+
+let isText = false;
+let elementHeight = 0;
+let elementWidth = 0;
+let intermediaryMargin = 0;
+let spaceFilledNone = 0;
+let spaceFilledAbove = 0;
+let spaceFilledBelow = 0;
+
+let diffHeight = 0;
+let diffHeightTop = 0;
+let diffWidthRight = 0;
+let diffWidthLeft = 0;
+
+let translateX = 0;
+let translateY = 0;
 
 class Canvas extends Component {
 
-  constructor() {
-    super();
-    this.state = {
-      device: "",
-      template: "",
-      number: "",
-      newScreenshot: false,
-      screenshotPresent: false,
-      screenshot: "",
-      backgroundColor: "",
-      titleContent: "",
-      titleSize: "",
-      titleColor: "",
-      titleFont: "",
-      subtitleContent: "",
-      subtitleSize: "",
-      subtitleColor: "",
-      subtitleFont: ""
+  state = {
+    isDevice: false,
+    deviceWidthStart: 0,
+    deviceHeightStart: 0,
+    deviceWidth: 0,
+    deviceHeight: 0,
+    screenshotWidthStart: 0,
+    screenshotHeightStart: 0,
+    screenshotWidth: 0,
+    screenshotHeight: 0
+  }
+
+/****************
+lifecycle events
+****************/
+
+  componentDidMount = (prevProps) => {
+    console.log("component did mount");
+    this.createCanvas(true, prevProps);
+    // this.createCanvasFirst();
+  }
+
+  componentDidUpdate = (prevProps) => {
+    console.log("component did update");
+    if (prevProps.canva !== this.props.canva) {
+      this.createCanvas(false, prevProps);
+      // this.clearCanvas();
+
+      console.log('Rrow update diff:');
+
+      // log the diff between prevprops and props => https://gist.github.com/albertorestifo/83877c3e4c81066a592a47c4dcf6753b
+      const now = Object.entries(this.props);
+      const added = now.filter(([key, val]) => {
+        if (prevProps[key] === undefined) return true;
+        if (prevProps[key] !== val) {
+          console.log(`${key}
+            - ${JSON.stringify(val)}
+            + ${JSON.stringify(prevProps[key])}`);
+        }
+        return false;
+      });
+      added.forEach(([key, val]) => console.log(`${key}
+            + ${JSON.stringify(val)}`));
+
+      // end of the log
+    }
+  }
+
+  addDeviceCoordinatesToState = () => {
+    if (this.state.isDevice !== isDevice ||
+        this.state.deviceWidthStart !== deviceWidthStart ||
+        this.state.deviceHeightStart !== deviceHeightStart ||
+        this.state.deviceWidth !== allDevices[`datas${this.props.index}`].deviceWidth ||
+        this.state.deviceHeight !== allDevices[`datas${this.props.index}`].deviceHeight) {
+      this.setState({
+        isDevice: isDevice,
+        deviceWidthStart: deviceWidthStart,
+        deviceHeightStart: deviceHeightStart,
+        deviceWidth: deviceWidth,
+        deviceHeight: deviceHeight
+      })
+    }
+  }
+
+  addScreenshotCoordinatesToState = () => {
+    if (this.state.screenshotWidthStart !== screenshotWidthStart ||
+        this.state.screenshotHeightStart !== screenshotHeightStart ||
+        this.state.screenshotWidth !== screenshotWidth ||
+        this.state.screenshotHeight !== screenshotHeight) {
+      this.setState({
+        screenshotWidthStart: screenshotWidthStart,
+        screenshotHeightStart: screenshotHeightStart,
+        screenshotWidth: screenshotWidth,
+        screenshotHeight: screenshotHeight
+      });
+    }
+  }
+
+
+/*****************************
+methods to calculate the text
+*****************************/
+
+splittingContent = (ctx, content, fontSize) => {
+  // ctx.fillStyle = 'white';
+  ctx.font = `${fontSize}px Arial`;
+  // ctx.textAlign = 'center';
+
+  const arr = content.split("\n");
+  const newArr = [];
+
+  for (let i = 0; i < arr.length; i++) {
+    const words = arr[i].split(" ");
+    if (words[words.length-1] === "") {
+      words.pop();
+    }
+    let lineOk = "";
+    let lineTest = "";
+
+    for (let j = 0; j < words.length; j++) {
+
+      lineTest += `${words[j]} `;
+      if (ctx.measureText(lineTest).width < maxWidthText) {
+        lineOk = lineTest;
+      } else {
+        newArr.push(lineOk);
+        lineOk = "";
+        lineTest = `${words[j]} `;
+      }
+
+      if (j === words.length - 1) {
+        newArr.push(lineTest);
+      }
+    }
+  }
+  return newArr;
+}
+
+/*******************************
+methods to calculate meta-datas
+*******************************/
+  // 1. définir le contexte : device, caption, rotate
+  getContext = () => {
+    console.log("INSIDE GET CONTEXT");
+    device = this.props.device;
+    caption = Templates[this.props.canva.template].caption;
+    isDevice = Templates[this.props.canva.template].device;
+    isRotate = Templates[this.props.canva.template].rotate;
+    rotRadians = (Math.PI / 180) * Templates[this.props.canva.template].rotation;
+    isFull = Templates[this.props.canva.template].full;
+    deviceWidth = DeviceSize[device].width;
+    deviceHeight = DeviceSize[device].height;
+
+    allDevices[`datas${this.props.index}`]= {
+      deviceWidth: 0,
+      deviceHeight: 0
     };
   }
 
-  componentWillMount = () => {
-    // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
-    this.setState({
-      device: this.props.device,
-      template: "1",
-      number: this.props.index + 1,
-      backgroundColor: "#0f63c2",
-      titleSize: "medium",
-      subtitleSize: "medium",
-      titleColor: "#ffffff",
-      subtitleColor: "#ffffff",
-    });
+  // 2. calculer la taille du nouveau canva
+  getCanvaDatas = () => {
+    canvaWidth = CanvasSizes[DeviceSize[device].canva].width;
+    canvaHeight = CanvasSizes[DeviceSize[device].canva].height;
   }
 
-  componentDidMount = () => {
-
-    const screenshot = new Image();
-
-    this.createCanvas();
-
-    // ici, il faudra faire un if pour soit prendre les valeurs en db, soit des valeurs par défaut
-    this.setState({
-      screenshot: screenshot
-    });
-
+  // 3. définir la taille des marges rL et tB et les max width & height
+  getMargins = () => {
+    rLMargin = canvaWidth * rLMarginRate;
+    tBMargin = canvaHeight * tBMarginRate;
+    maxWidthText = canvaWidth - rLMargin * 2;
   }
 
-  componentDidUpdate = () => {
-    this.createCanvas();
+  // 4. définir le texte (splitting content etc)
+  defineText = (ctx) => {
+    titleSplited = this.splittingContent(ctx, this.props.canva.titleContent, TextSizes[this.props.canva.titleSize].titleSize);
+    subtitleSplited = this.splittingContent(ctx, this.props.canva.subtitleContent, TextSizes[this.props.canva.subtitleSize].subtitleSize);
   }
 
-  // componentWillUpdate = () => {
-  //   console.log("it's gonna update");
-  // }
-
-  handleChange = (e) => {
-    this.setState({ [e.target.name]: e.target.value});
-  }
-
-  getCanvaSize = () => {
-    canvaWidth = CanvasSizes[DeviceSize[this.props.device].canva].width;
-    canvaHeight = CanvasSizes[DeviceSize[this.props.device].canva].height;
-
-    marginSides = 50;
-    maxWidth = canvaWidth - marginSides * 2;
-
-    deviceWidth = DeviceSize[this.props.device].width;
-    deviceHeight = DeviceSize[this.props.device].height;
-
-    deviceHeightStart = 0;
-
-    if (Templates[this.state.template].device) {
-      screenshotWidthStart = DeviceSize[this.props.device].widthStart;
-      screenshotHeightStart = DeviceSize[this.props.device].heightStart;
-      screenshotWidthEnd = DeviceSize[this.props.device].widthEnd;
-      screenshotHeightEnd = DeviceSize[this.props.device].heightEnd;
-    } else {
-      console.log(deviceWidthStart, deviceHeightStart);
-      // il faut le faire commencer et finir là où le device commencerait et finirait (mais pas complètement, parce qu'ils ne sont pas au même format)
-      screenshotWidthStart = marginSides;
-      screenshotHeightStart = 0;
-      screenshotWidthEnd = maxWidth;
-      screenshotHeightEnd = ( maxWidth * DeviceSize[this.props.device].heightEnd ) / DeviceSize[this.props.device].widthEnd;
-    }
-
-    device = this.props.device;
-    number = this.props.index + 1;
-  }
-
-  destroyPrevCanvas = () => {
-    const canvasToDestroy = document.querySelector(`#canva-container-${this.props.index}`);
-    canvasToDestroy.innerHTML = "";
-  }
-
-  createEmptyCanvas = () => {
-    // selecting the canvas parent
-    const parentCanvas = document.querySelector(`#canva-container-${this.props.index}`);
-
-    // creating a canvas
-    const childCanvas = document.createElement('canvas');
-
-    // childCanvas.classList.add(DeviceSize[this.props.device]);
-    childCanvas.id = `canva-${this.props.index}`;
-    childCanvas.classList.add(DeviceSize[this.props.device].canva);
-    childCanvas.width = canvaWidth;
-    childCanvas.height = canvaHeight;
-
-    // appending the canva to the parent
-    parentCanvas.appendChild(childCanvas);
-  }
-
-  uploadScreenshot = (e) => {
-    // e.preventDefault();
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const screenshot = this.state.screenshot;
-      screenshot.src = event.target.result;
-      this.setState({
-        screenshot: screenshot
-      })
-    }
-    reader.readAsDataURL(e.target.files[0]);
-
-    this.setState({
-      newScreenshot: true,
-      screenshotPresent: true
-    })
-  }
-
-  downloadIt = (index) => {
-    console.log("fiiiiiire");
-    console.log(index);
-
-    const download = document.querySelector(`#a-${index}`);
-    const image = document.querySelector(`#canva-${index}`).toDataURL('image/jpeg', 0.7).replace("image/jpg", "image/octet-stream");
-    download.setAttribute("href", image);
-
-    console.log("the end");
-  }
-
-  addCanvasBackground = (ctx) => {
-    // creating the background
-    ctx.fillStyle = this.state.backgroundColor;
-    ctx.fillRect(0, 0, canvaWidth, canvaHeight);
-  }
-
+  // 5. calculer la hauteur occupée par le texte
+  // une petite refactorisation ici ? Ou des commentaires au moins ?
   getTextDatas = () => {
     countTitleLines = titleSplited.length;
     countSubtitleLines = subtitleSplited.length;
-    titleSize = TextSizes[this.state.titleSize].titleSize;
-    titleToTitle = TextSizes[this.state.titleSize].titleToTitle;
-    subtitleSize = TextSizes[this.state.subtitleSize].subtitleSize;
-    subtitleToSubtitle = TextSizes[this.state.titleSize].subtitleToSubtitle;
+    titleSize = TextSizes[this.props.canva.titleSize].titleSize;
+    titleToTitle = TextSizes[this.props.canva.titleSize].titleToTitle;
+    subtitleSize = TextSizes[this.props.canva.subtitleSize].subtitleSize;
+    subtitleToSubtitle = TextSizes[this.props.canva.titleSize].subtitleToSubtitle;
     let titleToSubtitleNeeded = 1;
 
     if (countTitleLines === 0 || countSubtitleLines === 0 ) {
@@ -289,63 +347,151 @@ class Canvas extends Component {
     if (countTitleLines === 0) {
       spaceFilledByTitle = 0;
     } else {
-      spaceFilledByTitle = titleSize * countTitleLines + (titleToTitle - titleSize) * (countTitleLines-1) + TextSizes[this.state.titleSize].titleToSubtitle * titleToSubtitleNeeded;
+      spaceFilledByTitle = titleSize * countTitleLines + titleToTitle * (countTitleLines-1) + TextSizes[this.props.canva.titleSize].titleToSubtitle * titleToSubtitleNeeded;
     }
 
     if (countSubtitleLines === 0) {
       spaceFilledBySubtitle = 0;
     } else {
-      spaceFilledBySubtitle = subtitleSize * countSubtitleLines + (subtitleToSubtitle - subtitleSize) * (countSubtitleLines-1);
+      spaceFilledBySubtitle = subtitleSize * countSubtitleLines + subtitleToSubtitle * (countSubtitleLines-1);
     }
 
+    if (countTitleLines > 0) {
+      paddingTop = TextSizes[this.props.canva.titleSize].paddingTop;
+      spaceFilledByTitle -= paddingTop;
+    } else if (countSubtitleLines > 0 ) {
+      paddingTop = TextSizes[this.props.canva.subtitleSize].paddingTop;
+      spaceFilledBySubtitle -= paddingTop;
+    }
 
     if (countTitleLines === 0 && countSubtitleLines === 0) {
       spacingToDevice = 0;
       spacingToText = 0;
     } else {
-      if (Templates[this.state.template].caption === "above") {
+      if (caption === "above") {
         if (countSubtitleLines > 0) {
-          spacingToDevice = TextSizes[this.state.subtitleSize].subtitleToDevice;
+          spacingToDevice = TextSizes[this.props.canva.subtitleSize].subtitleToDevice;
         } else {
-          spacingToDevice = TextSizes[this.state.titleSize].titleToDevice;
+          spacingToDevice = TextSizes[this.props.canva.titleSize].titleToDevice;
         }
-      } else if (Templates[this.state.template].caption === "below") {
+      } else if (caption === "below") {
         if (countTitleLines > 0) {
-          spacingToText = TextSizes[this.state.subtitleSize].deviceToTitle
+          spacingToText = TextSizes[this.props.canva.subtitleSize].deviceToTitle
         } else {
-          spacingToText = TextSizes[this.state.subtitleSize].deviceToSubtitle
+          spacingToText = TextSizes[this.props.canva.subtitleSize].deviceToSubtitle
         }
       }
     }
-
-
-    if (countSubtitleLines > 0) {
-      spacingToDevice = TextSizes[this.state.subtitleSize].subtitleToDevice;
-      spacingToText = TextSizes[this.state.subtitleSize].deviceToTitle
-    } else {
-      spacingToDevice = TextSizes[this.state.titleSize].titleToDevice;
-      spacingToText = TextSizes[this.state.subtitleSize].deviceToSubtitle
-    }
   }
 
-  getTextStart = () => {
-    // les start top et start bottom sont inutiles
-    // il faut un marginTopBottom fixe
-    // on fait commencer en haut de marginTopBottom + size de la première ligne (title ou subtitle)
-    // on fait commencer en bas de marginTopBottom
-    // on pourrait même calculer le marginTopBottom en fonction de la différence entre canva et device (mais ça marche que si le device est plus petit que le canva)
-    // mais c'est exactement ce qu'il faut faire
-    // mais du coup, il vaut mieux avoir des mockups qui collent au bord
-    // ensuite, on recalcule la disposition du device en fonction de sa taille, de la taille du canva et de la marge que l'on veut
-    // si on veut mettre du texte, on calcule une width pour device en fonction des marges sur le côté que l'on veut, puis on en déduit la height et une partie du device est cachée
-    // si on veut centrer le device, sans texte, on calcule width minimum et height minimum en fonction des marges, on déduit l'une de l'autre et on garde le plus petit pour pas que ça dépasse
-    // pour commencer, il me faut des mockups mieux faits
-    // faire les mockups des 2 iphones et d'un ipad pour continuer à développer, on refera les mockups en entier plus tard
+  getTextSize = () => {
+    spaceFilledByText = tBMargin + spaceFilledByTitle + spaceFilledBySubtitle;
+  }
 
-    if (Templates[this.state.template].caption === "above") {
-      textStart = TextSizes.startTop;
-    } else if (Templates[this.state.template].caption === "below") {
-      textStart = CanvasSizes[DeviceSize[this.props.device].canva].height - TextSizes.startBottom - spaceFilledByTitle - spaceFilledBySubtitle;
+  // 6. now we can define the max height
+  getMaxDimensions = () => {
+    diffWidthRight = 0;
+    diffWidthLeft = 0;
+    diffHeight = 0;
+
+    if (isRotate) {
+      diffWidthRight = Math.abs(deviceWidth - (Math.abs(Math.sin(rotRadians) * deviceWidth) / Math.abs(Math.tan(rotRadians))));
+      diffWidthLeft = Math.abs(Math.sin(rotRadians) * deviceHeight);
+      diffHeight = Math.abs(Math.sin(rotRadians) * deviceWidth);
+    }
+
+    if (isFull) {
+      if (isRotate) {
+        // différentes possibilités de maxwidth et il y en a d'autres
+        // maxWidth = canvaWidth - diffWidthRight - diffWidthLeft;
+        // maxWidth = canvaWidth - diffWidthLeft/2 - diffWidthRight;
+        // maxWidth = canvaWidth;
+        // maxWidth = canvaWidth - rLMargin * 2;
+        maxWidth = canvaWidth - rLMargin;
+      } else {
+        maxWidth = canvaWidth - rLMargin * 2;
+      }
+      maxHeight = canvaHeight - spaceFilledByText - spacingToDevice - tBMargin;
+    } else {
+      maxWidth = canvaWidth - rLMargin * 2;
+      maxHeight = canvaHeight - tBMargin * 2;
+    }
+
+  }
+
+  // 7. redimensionner le device s'il y en a un
+  redoDeviceForCanvas = () => {
+    const tempWidth = maxWidth;
+    const tempHeight = tempWidth * DeviceSize[device].height / DeviceSize[device].width;
+
+    // from height
+    const tempHeight2 = maxHeight;
+    const tempWidth2 = tempHeight2 * DeviceSize[device].width / DeviceSize[device].height;
+
+    if (tempWidth <= tempWidth2) {
+      deviceWidth = tempWidth;
+      deviceHeight = tempHeight;
+    } else {
+      deviceWidth = tempWidth2;
+      deviceHeight = tempHeight2;
+    }
+
+    allDevices[`datas${this.props.index}`].deviceWidth = deviceWidth;
+    allDevices[`datas${this.props.index}`].deviceHeight = deviceHeight;
+
+    resizeWithDevice = deviceWidth / DeviceSize[device].width;
+
+    this.addDeviceCoordinatesToState();
+  }
+
+  // 8. redimensionner le screenshot (calcul selon le device ou selon le canvas s'il n'y a pas de device)
+  redoScreenshotForCanvas = () => {
+    if (isDevice) {
+      screenshotWidthStart = DeviceSize[device].ssWidthStart * resizeWithDevice;
+      screenshotHeightStart = DeviceSize[device].ssHeightStart * resizeWithDevice;
+      screenshotWidth = DeviceSize[device].ssWidth * resizeWithDevice;
+      screenshotHeight = DeviceSize[device].ssHeight * resizeWithDevice;
+    } else {
+      screenshotWidthStart = 0;
+      screenshotHeightStart = 0;
+      screenshotWidth = canvaWidth * resizeNoDevice;
+      screenshotHeight = DeviceSize[device].ssHeight * screenshotWidth / DeviceSize[device].ssWidth;
+    }
+
+    this.addScreenshotCoordinatesToState();
+  }
+
+  // 9. définir la taille des marges rL et tB
+  getElementSize = () => {
+    if (isDevice) {
+      if (isRotate) {
+        elementWidth = deviceWidth + diffWidthRight;
+        elementHeight = Math.abs(Math.sin(rotRadians) * deviceWidth) + Math.abs(Math.cos(rotRadians) * deviceHeight);
+      } else {
+        elementWidth = deviceWidth;
+        elementHeight = deviceHeight;
+      }
+    } else {
+      elementWidth = screenshotWidth;
+      elementHeight = screenshotHeight;
+    }
+
+    sideMargin = Math.max(rLMargin, (canvaWidth - elementWidth) / 2);
+  }
+
+  // 10. calculer la hauteur à laquelle écrire title et subtitle
+  getTextStart = () => {
+    let firstLineHeight = 0;
+    if (countTitleLines > 0) {
+      firstLineHeight += (TextSizes[this.props.canva.titleSize].titleSize - paddingTop);
+    } else if (countSubtitleLines > 0) {
+      firstLineHeight += (TextSizes[this.props.canva.subtitleSize].subtitleSize - paddingTop);
+    }
+
+    if (caption === "above") {
+      textStart = tBMargin + firstLineHeight;
+    } else if (caption === "below") {
+      textStart = CanvasSizes[DeviceSize[device].canva].height - spaceFilledByTitle - spaceFilledBySubtitle - tBMargin + firstLineHeight;
     }
   }
 
@@ -361,19 +507,116 @@ class Canvas extends Component {
     }
   }
 
-  getDeviceStart = () => {
-
-    if (Templates[this.state.template].caption === "above") {
-      const spaceFilledByText = titleStart + spaceFilledByTitle + spaceFilledBySubtitle + spacingToDevice;
-      deviceHeightStart += spaceFilledByText;
-      screenshotHeightStart += spaceFilledByText;
-    } else if (Templates[this.state.template].caption === "below") {
-      const deviceToBottom = spacingToText + (deviceHeight - textStart);
-      console.log(spacingToText);
-      deviceHeightStart -= deviceToBottom;
-      screenshotHeightStart -= deviceToBottom;
+  // 11. calculer la hauteur occupée par intermediaryMargin
+  getIntermediaryMargin = () => {
+    if ( (countTitleLines === 0 && countSubtitleLines === 0) || caption === "none") {
+      isText = false;
+    } else {
+      isText = true;
     }
 
+    if (!isText) {
+      intermediaryMargin = (canvaHeight - elementHeight) / 2;
+    } else {
+      let marginLeft = 0;
+
+      if (isFull) {
+        marginLeft = (canvaHeight - elementHeight - spaceFilledByText - tBMargin) / 2;
+      } else {
+        marginLeft = (canvaHeight - elementHeight - spaceFilledByText) / 2;
+      }
+
+      if (caption === "above" && spacingToDevice > marginLeft) {
+        intermediaryMargin = spacingToDevice;
+      } else if (caption === "below" && spacingToText > marginLeft) {
+        intermediaryMargin = spacingToText;
+      } else {
+        intermediaryMargin = marginLeft;
+      }
+    }
+  }
+
+  // 12. calculer l'espace occupé par le bloc au-dessus ou au-dessous de l'element:
+  getSpaceFilled = () => {
+    if (!isText) {
+      spaceFilledNone = intermediaryMargin;
+    } else {
+      spaceFilledAbove = spaceFilledByText + intermediaryMargin;
+      spaceFilledBelow = intermediaryMargin + spaceFilledByText;
+    }
+  }
+
+  // 13. calculer les translations : translateX et translateY
+  getTranslations = () => {
+    translateX = sideMargin;
+
+    if (!isText) {
+      translateY = spaceFilledNone;
+    } else if (caption === "above") {
+      translateY = spaceFilledAbove;
+    } else if (caption === "below") {
+      translateY = canvaHeight - elementHeight - spaceFilledBelow;
+    }
+  }
+
+  getRotateTranslations = () => {
+    if (rotRadians > 0) {
+      translateX += diffWidthRight + sideMargin * 1.3;
+      translateY += 0;
+    } else {
+      diffHeightTop = Math.abs(Math.tan(rotRadians) * (deviceWidth - diffWidthRight));
+      translateX -= sideMargin * 1.3;
+      translateY += diffHeightTop;
+    }
+  }
+
+
+/***************************************
+methods to draw and write on the canvas
+***************************************/
+
+  destroyPrevCanvas = () => {
+    const canvasToDestroy = document.querySelector(`#canva-container-${this.props.index}`);
+    canvasToDestroy.innerHTML = "";
+  }
+
+  clearCanvas = ctx => {
+    console.log(canvaWidth, canvaHeight);
+    ctx.clearRect(0, 0, canvaWidth, canvaHeight);
+  }
+
+  createEmptyCanvas = () => {
+    // selecting the canvas parent
+    const parentCanvas = document.querySelector(`#canva-container-${this.props.index}`);
+
+    // creating a canvas
+    const childCanvas = document.createElement('canvas');
+
+    // childCanvas.classList.add(DeviceSize[this.props.device]);
+    childCanvas.id = `canva-${this.props.index}`;
+    childCanvas.classList.add(DeviceSize[device].canva);
+    childCanvas.width = canvaWidth;
+    childCanvas.height = canvaHeight;
+
+    // appending the canva to the parent
+    parentCanvas.appendChild(childCanvas);
+  }
+
+  uploadScreenshot = (e) => {
+    // e.preventDefault();
+    const blob = e.target.files[0].slice(0, e.target.files[0].size, e.target.files[0].type);
+    const newFile = new File ([blob], `${this.props.canva.id}.png`, {type: e.target.files[0].type});
+
+    this.props.handleChangeCanvas(this.props.canva.id, "screenshot", newFile);
+    this.props.handleChangeCanvas(this.props.canva.id, "screenshotURL", `/${this.props.userId}/${this.props.canva.ProjectId}/${newFile.name}`);
+  }
+
+  addCanvasBackground = (ctx) => {
+      // creating the background
+      ctx.fillStyle = this.props.canva.backgroundColor;
+      ctx.fillRect(0, 0, canvaWidth, canvaHeight);
+      console.log("1");
+      return ctx;
   }
 
   writeText = (ctx, startHeight, fontColor, font, fontSize, content, lineToLine) => {
@@ -386,113 +629,294 @@ class Canvas extends Component {
     for (let i = 0; i < content.length; i++) {
       const gap = ctx.measureText(" ").width;
 
-      ctx.fillText(content[i], (canvaWidth + gap)/2, heightToDrawText, maxWidth);
+      ctx.fillText(content[i], (canvaWidth + gap)/2, heightToDrawText, maxWidthText);
       // ajout d'un interligne line/line
-      heightToDrawText += lineToLine;
+      heightToDrawText += (lineToLine + fontSize);
+      console.log("2 (write text)");
     }
   }
 
-  splittingContent = (ctx, content, fontSize) => {
-    ctx.fillStyle = 'white';
-    ctx.font = `${fontSize}px Arial`;
-    ctx.textAlign = 'center';
+  addCanvasScreenshot = (ctx, prevProps) => {
+    const promise = new Promise( resolve => {
+      // if (!prevProps || prevProps.canva.screenshot !== this.props.canva.screenshot) {
+        const reader = new FileReader();
+        const screenshot = new Image();
 
-    const arr = content.split("\n");
-    const newArr = [];
+        reader.onload = function(e) {
+          screenshot.src = e.target.result;
+        }
 
-    for (let i = 0; i < arr.length; i++) {
-      const words = arr[i].split(" ");
-      if (words[words.length-1] === "") {
-        words.pop();
-      }
-      let lineOk = "";
-      let lineTest = "";
-
-      for (let j = 0; j < words.length; j++) {
-
-        lineTest += `${words[j]} `;
-        if (ctx.measureText(lineTest).width < maxWidth) {
-          lineOk = lineTest;
+        if (this.props.canva.screenshot) {
+          reader.readAsDataURL(this.props.canva.screenshot);
+          screenshot.onload = () => {
+            ctx.drawImage(screenshot, this.state.screenshotWidthStart, this.state.screenshotHeightStart, this.state.screenshotWidth, this.state.screenshotHeight);
+            // this.addCanvasDevice(ctx);
+            console.log("3");
+            resolve("screenshot ajouté");
+          }
         } else {
-          newArr.push(lineOk);
-          lineOk = "";
-          lineTest = `${words[j]} `;
+          resolve("on n'a pas dessiné le screenshot");
         }
-
-        if (j == words.length - 1) {
-          newArr.push(lineTest);
-        }
-      }
-    }
-    return newArr;
+      // }
+      // else {
+      //   resolve("pas de nouveau screenshot, pas de dessin");
+      // }
+    })
+    return promise;
   }
 
-  addCanvasScreenshot = (ctx) => {
-    // if it's a new screenshot, we wait for onload
-    // otherwise, we don't have to wait
-    if (this.state.newScreenshot) {
-      const screenshot = this.state.screenshot;
-      screenshot.onload = () => {
-        console.log(screenshotHeightStart);
-        ctx.drawImage(screenshot, screenshotWidthStart, screenshotHeightStart, screenshotWidthEnd, screenshotHeightEnd);
-        this.addCanvasDevice(ctx);
-        if (this.state.newScreenshot) {
-          this.setState({
-            newScreenshot: false
-          })
+  addCanvasDevice = (ctx, prevProps) => {
+    const promise = new Promise( resolve => {
+      // if (!prevProps || prevProps.canva.screenshot !== this.props.canva.screenshot) {
+        if (this.state.isDevice) {
+          const deviceImg = new Image();
+          deviceImg.src = require(`../mockups/${this.props.device}.png`);
+          deviceImg.onload = () => {
+            ctx.drawImage(deviceImg, this.state.deviceWidthStart, this.state.deviceHeightStart, this.state.deviceWidth, this.state.deviceHeight);
+            console.log("4");
+            resolve("device ajouté");
+          }
+        } else {
+          resolve("on n'a pas dessiné le device");
         }
-      }
-    } else {
-      ctx.drawImage(this.state.screenshot, screenshotWidthStart, screenshotHeightStart, screenshotWidthEnd, screenshotHeightEnd);
-      this.addCanvasDevice(ctx);
-    }
+      // }
+      // else {
+      //   resolve("pas de nouveau device, pas de dessin");
+      // }
+
+    })
+    return promise;
   }
 
-  addCanvasDevice = (ctx) => {
-    if (Templates[this.state.template].device) {
-      const device = new Image();
-      device.src = require(`../mockups/${this.props.device}.png`);
-      device.onload = () => {
-        ctx.drawImage(device, deviceWidthStart, deviceHeightStart, deviceWidth, deviceHeight);
-      }
-    }
-  }
-
-  createCanvas = () => {
-    // destroying and creating the empty canva, must be first and in this order
-    this.getCanvaSize();
-    this.destroyPrevCanvas();
-    this.createEmptyCanvas();
+  addWatermark = () => {
     const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+    ctx.save();
 
-    // calculating how to split the title and the subtitle
-    titleSplited = this.splittingContent(ctx, this.state.titleContent, TextSizes[this.state.titleSize].titleSize);
-    subtitleSplited = this.splittingContent(ctx, this.state.subtitleContent, TextSizes[this.state.subtitleSize].subtitleSize);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    console.log(canvaHeight/2-50, canvaHeight/2+50)
+    ctx.fillRect(0, (canvaHeight/2-200), canvaWidth, 400);
+
+    ctx.fillStyle = "black";
+    ctx.font = `100px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText("The Big Mockup Project", canvaWidth/2, canvaHeight/2, canvaWidth);
+
+    ctx.restore();
+  }
+
+  tryToDownload = (index) => {
+    const token = localStorage.getItem("token");
+    axios.get(`${process.env.REACT_APP_API_ENDPOINT}/users/check_user_active`, {
+      headers: { Authorization: `obladi ${token}`}
+    }).then( res => {
+      console.log(res);
+      if (res.data.permission === true) {
+        console.log("it's okay, user can download");
+        this.downloadIt(index);
+      } else {
+        console.log("add watermark!");
+        this.addWatermark();
+        this.downloadIt(index);
+      }
+    }).catch( err => {
+      console.log("COULDN'T CHECK THE CREDENTIALS");
+      console.log(err);
+    })
+  }
+
+  downloadIt = (index) => {
+    const link = document.createElement('a');
+    link.setAttribute('download', `${this.props.device}_${this.props.index + 1}.jpg`);
+    const image = document.querySelector(`#canva-${index}`).toDataURL('image/jpeg', 0.7).replace("image/jpg", "image/octet-stream");
+    link.setAttribute('href', image);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+
+/********************************************
+the finale method where everything is played
+********************************************/
+
+  // createCanvas = (first) => {
+  //   console.log("create canvas is played");
+  //   // destroying and creating the empty canva, must be first and in this order
+  //   this.getContext();
+  //   this.getCanvaDatas();
+  //   // this.destroyPrevCanvas();
+  //   if (first) {
+  //     this.createEmptyCanvas();
+  //   }
+  //
+  //   const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+  //   ctx.save();
+  //   if (!first) {
+  //     this.clearCanvas(ctx);
+  //   }
+  //
+  //
+  //   // ctx.mozImageSmoothingEnabled = false;
+  //   // ctx.webkitImageSmoothingEnabled = false;
+  //   // ctx.msImageSmoothingEnabled = false;
+  //   // ctx.imageSmoothingEnabled = false;
+  //
+  //   // getting meta-datas
+  //   this.getMargins();
+  //   this.defineText(ctx);
+  //   this.getTextDatas();
+  //   this.getTextSize();
+  //   this.getMaxDimensions();
+  //   this.redoDeviceForCanvas();
+  //   this.redoScreenshotForCanvas();
+  //   this.getElementSize();
+  //   this.getTextStart();
+  //   this.getTitleStart();
+  //   this.getSubtitleStart();
+  //   this.getIntermediaryMargin();
+  //   this.getSpaceFilled();
+  //   this.getTranslations();
+  //
+  //   // drawing the background
+  //   this.addCanvasBackground(ctx);
+  //
+  //   // drawing the text
+  //   if (caption !== "none") {
+  //     this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
+  //     this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
+  //   }
+  //
+  //   // rotating if needed
+  //   if (isRotate) {
+  //     this.getRotateTranslations();
+  //     ctx.translate(translateX, translateY);
+  //     ctx.rotate(rotRadians);
+  //   } else {
+  //     // translation of the element (device and screenshot)
+  //     ctx.translate(translateX, translateY);
+  //   }
+  //
+  //   // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is drawn)
+  //   // otherwise it's played here
+  //   if (this.props.canva.screenshotURL) {
+  //     this.addCanvasScreenshot(ctx);
+  //   } else {
+  //     this.addCanvasDevice(ctx);
+  //   }
+  //
+  //   console.log("5");
+  //   ctx.restore();
+  //   // this.sendCanvasDatasToProject();
+  //
+  // }
+
+  // createCanvasFirst = () => {
+  //   console.log("create canvas FIRST is played");
+  //   this.getContext();
+  //   this.getCanvaDatas();
+  //   this.createEmptyCanvas();
+  //
+  //   const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+  //
+  //   // getting meta-datas
+  //   this.getMargins();
+  //   this.defineText(ctx);
+  //   this.getTextDatas();
+  //   this.getTextSize();
+  //   this.getMaxDimensions();
+  //   this.redoDeviceForCanvas();
+  //   this.redoScreenshotForCanvas();
+  //   this.getElementSize();
+  //   this.getTextStart();
+  //   this.getTitleStart();
+  //   this.getSubtitleStart();
+  //   this.getIntermediaryMargin();
+  //   this.getSpaceFilled();
+  //   this.getTranslations();
+  // }
+
+  createCanvas = (first, prevProps) => {
+    console.log("create canvas is played");
+    console.log(first, prevProps);
+
+    // destroying and creating the empty canva, must be first and in this order
+    this.getContext();
+    this.getCanvaDatas();
+    this.destroyPrevCanvas();
+    // if (first) {
+      this.createEmptyCanvas();
+    // }
+
+
+    const ctx = document.querySelector(`#canva-${this.props.index}`).getContext('2d');
+    ctx.save();
+    // if (!first) {
+    //   this.clearCanvas(ctx);
+    // }
 
     // getting meta-datas
+    this.getMargins();
+    this.defineText(ctx);
     this.getTextDatas();
-    if (Templates[this.state.template].caption !== "none") {
-      this.getTextStart();
-      this.getTitleStart();
-      this.getSubtitleStart();
-    }
-    this.getDeviceStart();
+    this.getTextSize();
+    this.getMaxDimensions();
+    this.redoDeviceForCanvas();
+    this.redoScreenshotForCanvas();
+    this.getElementSize();
+    this.getTextStart();
+    this.getTitleStart();
+    this.getSubtitleStart();
+    this.getIntermediaryMargin();
+    this.getSpaceFilled();
+    this.getTranslations();
 
-    // drawing the backgroung
-    this.addCanvasBackground(ctx);
+    // if (!first) {
 
-    // drawing the text
-    this.writeText(ctx, titleStart, this.state.titleColor, this.state.titleFont, TextSizes[this.state.titleSize].titleSize, titleSplited, TextSizes[this.state.titleSize].titleToTitle);
-    this.writeText(ctx, subtitleStart, this.state.subtitleColor, this.state.subtitleFont, TextSizes[this.state.subtitleSize].subtitleSize, subtitleSplited, TextSizes[this.state.subtitleSize].subtitleToSubtitle);
+      // drawing the background
+      this.addCanvasBackground(ctx);
 
-    // if we have a screenshot, addCanvasDevice() is played inside the method drawing the screenshot (after that the screenshot is draw)
-    // otherwise it's played here
-    if (this.state.screenshotPresent == true) {
-      this.addCanvasScreenshot(ctx);
-    } else {
-      this.addCanvasDevice(ctx);
-    }
+      // drawing the text
+      if (caption !== "none") {
+        this.writeText(ctx, titleStart, this.props.canva.titleColor, this.props.canva.titleFont, titleSize, titleSplited, titleToTitle);
+        this.writeText(ctx, subtitleStart, this.props.canva.subtitleColor, this.props.canva.subtitleFont, subtitleSize, subtitleSplited, subtitleToSubtitle);
+      }
+
+      // rotating if needed
+      if (isRotate) {
+        this.getRotateTranslations();
+        ctx.translate(translateX, translateY);
+        ctx.rotate(rotRadians);
+      } else {
+        // translation of the element (device and screenshot)
+        ctx.translate(translateX, translateY);
+      }
+
+      this.test(ctx, prevProps).then( res => {
+        console.log(res);
+        this.testBis(ctx, prevProps).then( res => {
+          console.log(res);
+          console.log("5");
+          ctx.restore();
+        })
+      });
+
+    // }
+
   }
+
+  test = async (ctx, prevProps) => {
+    const response = await this.addCanvasScreenshot(ctx, prevProps);
+    return response;
+  }
+
+  testBis = async (ctx, prevProps) => {
+    const response = await this.addCanvasDevice(ctx, prevProps);
+    return response;
+  }
+
+/*************************************
+methods to display the dropdown menus
+*************************************/
 
 
   displayColors = () => {
@@ -513,9 +937,8 @@ class Canvas extends Component {
     const templates = Templates.map((template, index) => (
       <option key={index} value={template.index}>{template.name}</option>
     ));
-    return templates
+    return templates;
   }
-
 
 
   render() {
@@ -526,7 +949,7 @@ class Canvas extends Component {
           <p>settings ici</p>
 
           <label htmlFor={`template-${this.props.index}`}>Template:</label>
-          <select id={`template-${this.props.index}`} name="template" onChange={e => this.handleChange(e)} value={this.state.template} >
+          <select id={`template-${this.props.index}`} name="template" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.template} >
             {this.displayTemplates()}
           </select>
 
@@ -542,12 +965,12 @@ class Canvas extends Component {
            id={`background-color-${this.props.index}`}
            name="backgroundColor"
            placeholder="Color"
-           value={this.state.backgroundColor}
-           onChange={e => this.handleChange(e)}
+           value={this.props.canva.backgroundColor}
+           onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`background-color-dropdown-${this.props.index}`}>Background Color Picker:</label>
-          <select id={`background-color-dropdown-${this.props.index}`} name="backgroundColor" onChange={e => this.handleChange(e)} value={this.state.backgroundColor} style={{backgroundColor: this.state.backgroundColor}} >
+          <select id={`background-color-dropdown-${this.props.index}`} name="backgroundColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.backgroundColor} style={{backgroundColor: this.props.canva.backgroundColor}} >
            {this.displayColors()}
           </select>
 
@@ -556,11 +979,12 @@ class Canvas extends Component {
             id={`title-content-${this.props.index}`}
             name="titleContent"
             placeholder="Type your title here"
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.titleContent}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`title-size-${this.props.index}`}>Title Size:</label>
-          <select id={`title-size-${this.props.index}`} name="titleSize" onChange={e => this.handleChange(e)} value={this.state.titleSize} >
+          <select id={`title-size-${this.props.index}`} name="titleSize" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleSize} >
             <option value="small">small</option>
             <option value="medium" default>medium</option>
             <option value="large">large</option>
@@ -572,17 +996,17 @@ class Canvas extends Component {
             id={`title-color-text-${this.props.index}`}
             name="titleColor"
             placeholder="Color"
-            value={this.state.titleColor}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.titleColor}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`title-color-dropdown-${this.props.index}`}>Title Color Picker:</label>
-          <select id={`title-color-dropdown-${this.props.index}`} name="titleColor" onChange={e => this.handleChange(e)} value={this.state.titleColor} style={{backgroundColor: this.state.titleColor}} >
+          <select id={`title-color-dropdown-${this.props.index}`} name="titleColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleColor} style={{backgroundColor: this.props.canva.titleColor}} >
             {this.displayColors()}
           </select>
 
           <label htmlFor={`title-font-dropdown-${this.props.index}`}>Title Font:</label>
-          <select id={`title-font-dropdown-${this.props.index}`} name="titleFont" onChange={e => this.handleChange(e)} value={this.state.titleFont}>
+          <select id={`title-font-dropdown-${this.props.index}`} name="titleFont" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.titleFont}>
             {this.displayFonts()}
           </select>
 
@@ -591,11 +1015,12 @@ class Canvas extends Component {
             id={`subtitle-content-${this.props.index}`}
             name="subtitleContent"
             placeholder="Type your subtitle here"
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.subtitleContent}
+            onChange={e => this.this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`subtitle-size-${this.props.index}`}>Subtitle Size:</label>
-          <select id={`subtitle-size-${this.props.index}`} name="subtitleSize" onChange={e => this.handleChange(e)} value={this.state.subtitleSize} >
+          <select id={`subtitle-size-${this.props.index}`} name="subtitleSize" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleSize} >
             <option value="small">small</option>
             <option value="medium" default>medium</option>
             <option value="large">large</option>
@@ -606,22 +1031,31 @@ class Canvas extends Component {
             id={`subtitle-color-${this.props.index}`}
             name="subtitleColor"
             placeholder="Color"
-            value={this.state.subtitleColor}
-            onChange={e => this.handleChange(e)}
+            value={this.props.canva.subtitleColor}
+            onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)}
           />
 
           <label htmlFor={`subtitle-color-dropdown-${this.props.index}`}>Subtitle Color Picker:</label>
-          <select id={`subtitle-color-dropdown-${this.props.index}`} name="subtitleColor" onChange={e => this.handleChange(e)} value={this.state.subtitleColor} style={{backgroundColor: this.state.subtitleColor}} >
+          <select id={`subtitle-color-dropdown-${this.props.index}`} name="subtitleColor" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleColor} style={{backgroundColor: this.props.canva.subtitleColor}} >
             {this.displayColors()}
           </select>
 
           <label htmlFor={`subtitle-font-dropdown-${this.props.index}`}>Subtitle Font:</label>
-          <select id={`subtitle-font-dropdown-${this.props.index}`} name="subtitleFont" onChange={e => this.handleChange(e)} value={this.state.subtitleFont}>
+          <select id={`subtitle-font-dropdown-${this.props.index}`} name="subtitleFont" onChange={e => this.props.handleChangeCanvas(this.props.canva.id, e.target.name, e.target.value)} value={this.props.canva.subtitleFont}>
             {this.displayFonts()}
           </select>
 
         </Settings>
-        <DlContainer id={`a-${this.props.index}`} className="button" download={`${this.props.device}_${this.props.index + 1}.jpg`} onClick={ () => {this.downloadIt(this.props.index)} }>
+          { this.props.canva.id ?
+            <DeleteButton onClick={() => this.props.deleteCanva(this.props.canva.id, this.props.canva.screenshotURL)}>
+              <p>Delete this mockup</p>
+            </DeleteButton>
+          : null}
+        <DlContainer
+          id={`a-${this.props.index}`}
+          className="button"
+          onClick={ () => this.tryToDownload(this.props.index) }
+        >
           <button className="dl-button">Download</button>
         </DlContainer>
       </Wrapper>

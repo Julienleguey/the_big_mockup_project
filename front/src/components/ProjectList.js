@@ -1,10 +1,12 @@
 import React from 'react';
-// import { UserContextBis } from './Context';
 import axios from 'axios';
 import styled from 'styled-components';
 
 // import components
 import ProjectCard from './ProjectCard';
+import RenameProjectModal from './RenameProjectModal';
+import DeleteProjectModal from './DeleteProjectModal';
+import DuplicateProjectModal from './DuplicateProjectModal';
 
 // import images
 import plus from '../images/add.svg';
@@ -40,7 +42,7 @@ const NewProject = styled.a`
     margin: 0 auto;
   }
 
-  h3{
+  h3 {
     text-align: center;
   }
 `;
@@ -53,71 +55,58 @@ class ProjectList extends React.Component {
   constructor() {
     super();
     this.state = {
-      projects: [0, 1]
+      projects: [],
+      modal: "",
+      projectModal: "",
+      nameModal: ""
     }
   }
 
-
-
   componentWillMount = () => {
-    console.log("Projects mount!");
+    this.loadProjects();
+    console.log(process.env.REACT_APP_API_ENDPOINT);
+  }
 
+  loadProjects = () => {
     const userId = this.props.loggedUserId;
+    const token = localStorage.getItem('token');
 
-    console.log(userId);
-
-    axios.get(`http://localhost:5000/projects/list/${userId}`).then( response => {
-        console.log(response);
+    axios.get(`${process.env.REACT_APP_API_ENDPOINT}/projects/list/${userId}`, {
+        headers: { Authorization: `obladi ${token}`}
+      }).then( response => {
         this.setState({
           projects: response.data
         })
-      }).then( () => {
-        // this.displayProjects();
-        console.log("meh");
       }).catch(error => {
-
         console.error(error);
-        // if (error.response.status === 500) {
-        //   this.props.history.push("/error");
-        // } else {
-        //   // used by UserSignIn to display the error messages (incorrect email or password)
-        //   this.setState({
-        //     errorMessageSignIn: error.response.data.message,
-        //     isErrorSignIn: true
-        //   });
-        // }
       });
   }
 
   displayProjects = () => {
-    console.log("start to display the projects");
     const projs = this.state.projects;
     const truc = projs.map( (proj, index) => {
-      console.log(proj);
       return (
-        <ProjectCard key={index} name={proj.name} id={proj.id} />
+        <ProjectCard key={index} name={proj.name} userId={this.props.loggedUserId} projectId={proj.id} openModal={this.openModal}/>
       )
     });
     return truc;
-    console.log("finished to display the projects");
   }
 
-  // displayProjects = () => {
-  //
-  //   const list = document.querySelector('#list');
-  //
-  //   const projs = this.state.projects;
-  //   const truc = projs.map( proj => {
-  //     return (
-  //       <ProjectsList name={proj.name}/>
-  //     )
-  //   });
-  //   // return truc;
-  //   list.appendChild(truc);
-  // }
+  openModal = (modalName, projectId, projectName) => {
+    this.setState({
+      modal: modalName,
+      projectIdModal: projectId,
+      projectNameModal: projectName
+    })
+  }
+
+  closeModal = () => {
+    this.setState({
+      modal: ""
+    })
+  }
 
   render() {
-    console.log(this.state.projects);
 
     return (
       <Wrapper>
@@ -129,6 +118,33 @@ class ProjectList extends React.Component {
           </NewProject>
           {this.displayProjects()}
         </List>
+
+        <RenameProjectModal
+          isOpen={this.state.modal === "renameProject" ? true : false}
+          setFlash={this.props.context.actions.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          projectName={this.state.projectNameModal}
+        />
+
+        <DuplicateProjectModal
+          isOpen={this.state.modal === "duplicateProject" ? true : false}
+          setFlash={this.props.context.actions.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          userId={this.props.loggedUserId}
+        />
+
+        <DeleteProjectModal
+          isOpen={this.state.modal === "deleteProject" ? true : false}
+          setFlash={this.props.context.actions.setFlash}
+          reloadProjects={this.loadProjects}
+          closeModal={this.closeModal}
+          projectId={this.state.projectIdModal}
+          userId={this.props.loggedUserId}
+        />
       </Wrapper>
     );
   }
