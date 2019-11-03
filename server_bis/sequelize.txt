@@ -49,3 +49,6 @@ npx sequelize-cli model:generate --name Canva --attributes template:string,backg
 npx sequelize-cli model:generate --name Token --attributes token:string,expiracy:date
 
 //
+
+en ligne de commande, pour s'authentifier en tant que postgre et faire des trucs :
+psql -U postgres
