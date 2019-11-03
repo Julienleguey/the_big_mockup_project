@@ -8,12 +8,22 @@ const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
-}
+// let sequelize;
+// if (config.use_env_variable) {
+//   sequelize = new Sequelize(process.env[config.use_env_variable], config);
+// } else {
+//   sequelize = new Sequelize(config.database, config.username, config.password, config);
+// }
+
+const sequelize = new Sequelize(
+  process.env.DATABASE,
+  process.env.DATABASE_USER,
+  process.env.DATABASE_PASSWORD,
+  {
+    host: 'localhost',
+    dialect: 'postgres'
+  },
+);
 
 fs
   .readdirSync(__dirname)
@@ -35,3 +45,33 @@ db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
 module.exports = db;
+
+
+// // import Sequelize from 'sequelize';
+// const Sequelize = require('sequelize');
+//
+// const sequelize = new Sequelize(
+//   process.env.DATABASE,
+//   process.env.DATABASE_USER,
+//   process.env.DATABASE_PASSWORD,
+//   {
+//     host: 'localhost',
+//     dialect: 'postgres'
+//   },
+// );
+//
+// const models = {
+//   User: sequelize.import('./user'),
+//   Project: sequelize.import('./project'),
+//   Canva: sequelize.import('./canva')
+// };
+//
+// Object.keys(models).forEach(key => {
+//   if ('associate' in models[key]) {
+//     models[key].associate(models);
+//   }
+// });
+//
+// // export { sequelize };
+// module.exports = { sequelize };
+// // export default models;

@@ -30,6 +30,11 @@ const corsOptions = {
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
 
+// for postgres
+// import models, { sequelize } from './server/models';
+// import { sequelize } from './server/models';
+const { sequelize } = require('./server/models');
+
 // create the Express app
 const app = express();
 
@@ -69,8 +74,6 @@ app.get('/', (req, res) => {
   });
 });
 
-
-
 // send 404 if no other route matched
 app.use((req, res) => {
   res.status(404).json({
@@ -101,7 +104,13 @@ preSuspendUsers();
 suspendUsers();
 
 
-// start listening on our port
-const server = app.listen(app.get('port'), '0.0.0.0', () => {
-  console.log(`Express server is listening on port ${server.address().port}`);
+// // start listening on our port
+// const server = app.listen(app.get('port'), '0.0.0.0', () => {
+//   console.log(`Express server is listening on port ${server.address().port}`);
+// });
+
+sequelize.sync().then(() => {
+  app.listen(process.env.PORT, () => {
+    console.log(`Example app listening on port ${process.env.PORT}!`);
+  });
 });
